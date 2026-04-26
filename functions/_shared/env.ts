@@ -1,0 +1,16 @@
+export interface Env {
+  SUPABASE_URL: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_PUBLISHABLE_KEY: string;
+  STRIPE_SECRET_KEY: string;
+  STRIPE_PUBLISHABLE_KEY: string;
+  STRIPE_WEBHOOK_SECRET: string;
+  RESEND_API_KEY: string;
+  DOCUSEAL_API_KEY: string;
+  DOCUSEAL_BASE_URL: string;
+  DOCUSEAL_WEBHOOK_SECRET: string;
+  DOCUSEAL_WEBHOOK_SECRET_HEADER_KEY: string;
+  CALCOM_BOOKING_URL: string;
+  SITE_URL: string;
+  FOUNDER_EMAIL: string;
+}
