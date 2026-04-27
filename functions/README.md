@@ -11,7 +11,7 @@ URL path.
 - `api/` — public endpoints. Each file maps to a URL.
   - `api/create-checkout-session.ts` → POST /api/create-checkout-session
   - `api/stripe-webhook.ts` → POST /api/stripe-webhook
-  - `api/docuseal-webhook.ts` → POST /api/docuseal-webhook
+  - `api/signwell-webhook.ts` → POST /api/signwell-webhook
   - (more added in Prompt 2)
 
 ## Environment Variables

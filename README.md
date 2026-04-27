@@ -10,7 +10,7 @@ a cinematic websites agency in Düren, Germany.
 - **Database:** Supabase (PostgreSQL with Row Level Security)
 - **Payments:** Stripe (5 products, 50% deposit model, payouts to Wise EUR)
 - **Email:** Resend (added in Phase 2 Prompt 2)
-- **Contracts:** DocuSeal (added in Phase 2 Prompt 2)
+- **Contracts:** SignWell (added in Phase 2 Prompt 2)
 - **Hosting:** Cloudflare Pages with custom domain trendivalux.com
 - **Package manager:** pnpm
 
@@ -37,7 +37,7 @@ command is `pnpm build` and the output directory is `dist/`.
   account with Wise payout, Stripe products, Cloudflare Pages Functions structure,
   environment configuration.
 - **Phase 2 Prompt 2 (Next):** Conversion engine — OrderModal persistence,
-  Stripe checkout, contract generation, DocuSeal signing, email automation.
+  Stripe checkout, contract generation, SignWell signing, email automation.
 - **Phase 2 Prompt 3:** Polish and launch — waitlist, exit-intent, scarcity counter,
   SEO, legal page placeholders, Plausible Analytics, custom domain, end-to-end smoke test.
 - **Phase 3:** Legal documents polish (Impressum, Datenschutz, AGB, Werkvertrag template).

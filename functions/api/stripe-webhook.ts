@@ -8,7 +8,7 @@ import {
   sendFounderAlert,
   sendFounderKickoff,
 } from '../_shared/email';
-import { createDocusealSubmission } from '../_shared/docuseal';
+import { createSignWellSubmission } from '../_shared/signwell';
 import type { Env } from '../_shared/env';
 
 const TIER_LABELS: Record<string, string> = {
@@ -155,20 +155,20 @@ async function handleCheckoutPaid(
     orderRow.customer_address ??
     null;
 
-  // Create the DocuSeal submission. Failure should not block email delivery —
+  // Create the SignWell document. Failure should not block email delivery —
   // we still send the deposit confirmation and the founder gets a follow-up alert
   // so we can manually replay the contract step.
   let contractSigningUrl = `${env.SITE_URL}/contract/${orderRow.id}`;
   try {
-    if (!env.DOCUSEAL_TEMPLATE_ID) {
-      throw new Error('DOCUSEAL_TEMPLATE_ID is not set');
+    if (!env.SIGNWELL_TEMPLATE_ID) {
+      throw new Error('SIGNWELL_TEMPLATE_ID is not set');
     }
-    const docusealResult = await createDocusealSubmission({
-      apiKey: env.DOCUSEAL_API_KEY,
-      baseUrl: env.DOCUSEAL_BASE_URL,
-      templateId: env.DOCUSEAL_TEMPLATE_ID,
+    const signwellResult = await createSignWellSubmission({
+      apiKey: env.SIGNWELL_API_KEY,
+      templateId: env.SIGNWELL_TEMPLATE_ID,
       customerEmail: orderRow.customer_email,
       customerName,
+      testMode: env.STRIPE_SECRET_KEY.startsWith('sk_test_'),
       mergeFields: {
         customer_name: customerName,
         customer_address: formatAddress(customerAddress),
@@ -187,21 +187,22 @@ async function handleCheckoutPaid(
       .from('orders')
       .update({
         contract_status: 'sent',
-        contract_docuseal_id: docusealResult.submissionId,
-        contract_signing_url: docusealResult.signingUrl,
+        contract_docuseal_id: signwellResult.submissionId,
+        contract_signing_url: signwellResult.signingUrl,
         status: 'contract_sent',
       })
       .eq('id', orderId);
 
     // We email the /contract/[order_id] page URL so the customer can return any
-    // time. That page resolves the DocuSeal iframe from contract_signing_url.
+    // time. That page renders the SignWell embedded signing iframe from
+    // contract_signing_url.
   } catch (err) {
-    console.error('DocuSeal submission failed:', err);
+    console.error('SignWell submission failed:', err);
     await sendFounderAlert(
       env.RESEND_API_KEY,
       env.FOUNDER_EMAIL,
-      `⚠️ DocuSeal submission failed for order ${orderRow.id.slice(0, 8)}`,
-      `<p>Stripe payment cleared but DocuSeal submission failed. Customer received the deposit confirmation but the contract link will 404 until you manually create the submission.</p><p><strong>Order:</strong> <code>${orderRow.id}</code></p><p><strong>Customer:</strong> ${orderRow.customer_email}</p><p><strong>Error:</strong> <code>${err instanceof Error ? err.message : 'unknown'}</code></p>`,
+      `⚠️ SignWell submission failed for order ${orderRow.id.slice(0, 8)}`,
+      `<p>Stripe payment cleared but SignWell document creation failed. Customer received the deposit confirmation but the contract link will 404 until you manually create the document.</p><p><strong>Order:</strong> <code>${orderRow.id}</code></p><p><strong>Customer:</strong> ${orderRow.customer_email}</p><p><strong>Error:</strong> <code>${err instanceof Error ? err.message : 'unknown'}</code></p>`,
     ).catch(() => {});
   }
 

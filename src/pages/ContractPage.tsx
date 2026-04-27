@@ -56,8 +56,8 @@ export default function ContractPage() {
     };
 
     fetchOrder();
-    // Re-poll every 4s while we wait for DocuSeal submission to land. Stops once
-    // contract_signing_url is set (or after the order is signed).
+    // Re-poll every 4s while we wait for the SignWell document to land. Stops
+    // once contract_signing_url is set (or after the order is signed).
     const interval = window.setInterval(() => {
       if (order?.contract_signing_url || order?.contract_status === 'signed') {
         window.clearInterval(interval);
