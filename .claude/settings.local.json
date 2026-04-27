@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:developers.signwell.com)",
+      "WebSearch",
+      "WebFetch(domain:www.signwell.com)",
+      "WebFetch(domain:help.signwell.com)"
+    ]
+  }
+}
