@@ -4,7 +4,7 @@ import { Orbs, DigitalSunset } from '../components/Atmosphere';
 import { TopNav, FadeUp } from '../components/Hero';
 import { Footer, ContactModal } from '../components/Footer';
 import { OrderModal } from '../components/OrderModal';
-import type { TierConfig } from '../lib/tier-configs';
+import type { TierConfig, TierSlug } from '../lib/tier-configs';
 
 const Reveal = ({ children, delay = 0 }: { children: any; delay?: number }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -723,7 +723,7 @@ export const TierPage = ({ config }: { config: TierConfig }) => {
   const [contactOpen, setContactOpen] = useState(false);
 
   const openOrder = (tierId: string = config.id) => {
-    setOrderTier(tierId);
+    setOrderTier(tierId as TierSlug);
     setOrderOpen(true);
   };
 

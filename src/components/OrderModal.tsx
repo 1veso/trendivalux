@@ -1,20 +1,38 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icons';
+import {
+  bookStrategyCall,
+  getOrCreateSessionId,
+  saveQuestionnaireStep,
+  submitQuestionnaire,
+  type ServerTier,
+} from '../lib/order-modal';
+import {
+  ADDON_FLAT_EUR,
+  ADDON_MONTHLY_EUR,
+  ADDON_NAMES,
+  RUSH_PERCENT,
+  TIER_BASE_EUR,
+  TIER_NAMES,
+} from '../config/pricing';
 
+// Display-shape constants for the OrderModal. Prices come from src/config/pricing.ts
+// (single source of truth shared with the server). Local fields like timeline/days
+// and blurb stay here because they're modal-only UI concerns.
 export const TIER_PRICING: Record<string, any> = {
-  landing: { id: 'landing', name: 'Landing', base: 1990, timeline: '3 days', days: 3 },
-  business: { id: 'business', name: 'Business', base: 3990, timeline: '14 days', days: 14 },
-  store: { id: 'store', name: 'Store', base: 6990, timeline: '21 days', days: 21 },
-  webapp: { id: 'webapp', name: 'Web App', base: 12990, timeline: '4–6 weeks', days: 35 },
-  custom: { id: 'custom', name: 'Custom', base: 20000, timeline: 'Custom', days: 60, isCustom: true },
+  landing:  { id: 'landing',  name: TIER_NAMES.landing,  base: TIER_BASE_EUR.landing,  timeline: '3 days',    days: 3 },
+  business: { id: 'business', name: TIER_NAMES.business, base: TIER_BASE_EUR.business, timeline: '14 days',   days: 14 },
+  store:    { id: 'store',    name: TIER_NAMES.store,    base: TIER_BASE_EUR.store,    timeline: '21 days',   days: 21 },
+  webapp:   { id: 'webapp',   name: TIER_NAMES.webapp,   base: TIER_BASE_EUR.webapp,   timeline: '4–6 weeks', days: 35 },
+  custom:   { id: 'custom',   name: TIER_NAMES.custom,   base: 20000,                  timeline: 'Custom',    days: 60, isCustom: true },
 };
 
 export const ADDON_PRICING: Record<string, any> = {
-  motion: { id: 'motion', name: 'Cinematic Motion Package', price: 490, blurb: 'GSAP scroll choreography + Framer Motion micro-interactions on every section. The signature TrendivaLux feel.' },
-  copywriting: { id: 'copywriting', name: 'Conversion Copywriting', price: 690, blurb: 'We write every headline, CTA and section. Tested copy structure. You approve, we publish.' },
-  seo: { id: 'seo', name: 'SEO Foundation', price: 390, blurb: 'Schema markup, meta optimization, sitemap, GA4 + Search Console. First 3 keywords ranked.' },
-  maintenance: { id: 'maintenance', name: 'Maintenance Retainer', price: 290, blurb: 'Per month. Security patches, content updates, analytics review. First month free.', monthly: true },
-  rush: { id: 'rush', name: 'Rush Delivery (-30% time)', price: null, percent: 0.25, blurb: 'We compress the timeline by 30%. Adds 25% to base price.' },
+  motion:      { id: 'motion',      name: ADDON_NAMES.motion,      price: ADDON_FLAT_EUR.motion,           blurb: 'GSAP scroll choreography + Framer Motion micro-interactions on every section. The signature TrendivaLux feel.' },
+  copywriting: { id: 'copywriting', name: ADDON_NAMES.copywriting, price: ADDON_FLAT_EUR.copywriting,      blurb: 'We write every headline, CTA and section. Tested copy structure. You approve, we publish.' },
+  seo:         { id: 'seo',         name: ADDON_NAMES.seo,         price: ADDON_FLAT_EUR.seo,              blurb: 'Schema markup, meta optimization, sitemap, GA4 + Search Console. First 3 keywords ranked.' },
+  maintenance: { id: 'maintenance', name: ADDON_NAMES.maintenance, price: ADDON_MONTHLY_EUR.maintenance,   blurb: 'Per month. Security patches, content updates, analytics review. First month free.', monthly: true },
+  rush:        { id: 'rush',        name: ADDON_NAMES.rush,        price: null,                            percent: RUSH_PERCENT, blurb: 'We compress the timeline by 30%. Adds 25% to base price.' },
 };
 
 export const STEPS = [
@@ -276,6 +294,10 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
   const [direction, setDirection] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [sessionId, setSessionId] = useState<string>(() => getOrCreateSessionId());
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const dataRef = useRef<any>(null);
 
   const [data, setData] = useState<any>({
     tier: initialTier,
@@ -320,8 +342,24 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
       setSubmitted(false);
       setShowMotionUpsell(false);
       setShowMaintenanceUpsell(false);
+      setSubmitError(null);
+      setSubmitting(false);
+    } else {
+      // Fresh draft on each open. Closes orphan any prior unfinished draft (kept in DB).
+      setSessionId(getOrCreateSessionId());
     }
   }, [open]);
+
+  // Debounced save-on-blur: persist the questionnaire ~700ms after any field change.
+  // We track data via a ref to avoid effect churn on the entire object reference.
+  dataRef.current = data;
+  useEffect(() => {
+    if (!open) return;
+    const timeout = window.setTimeout(() => {
+      saveQuestionnaireStep(sessionId, data.tier, step + 1, dataRef.current).catch(() => {});
+    }, 700);
+    return () => window.clearTimeout(timeout);
+  }, [data, step, sessionId, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -380,19 +418,11 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
   };
 
   const submit = async () => {
-    const order_id = `TLX-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-    const payload = {
-      order_id,
-      submitted_at: new Date().toISOString(),
+    if (submitting) return;
+    setSubmitError(null);
+
+    const answers = {
       tier: data.tier,
-      pricing: {
-        base: totals.base,
-        addons_total: totals.addonTotal,
-        subtotal: totals.subtotal,
-        deposit_due_now: totals.deposit,
-        balance_on_delivery: totals.balance,
-        currency: 'EUR',
-      },
       brief: {
         business: { name: data.business_name, url: data.business_url, pitch: data.pitch },
         audience: { tags: data.audience, freeform: data.audience_other },
@@ -406,16 +436,48 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
         deadline: { mode: data.deadline, date: data.deadline_date || null },
       },
       addons: data.addons,
-      client: { name: data.name, email: data.email, phone: data.phone, company: data.company },
-      automation_hooks: {
-        n8n_webhook: 'STUB_WEBHOOK_URL',
-        github_template: `tlx-${data.tier}`,
-        cloudflare_slug: data.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32),
+      pricing: {
+        base_eur: totals.base,
+        addons_total_eur: totals.addonTotal,
+        subtotal_eur: totals.subtotal,
+        deposit_eur: totals.deposit,
+        balance_eur: totals.balance,
+        currency: 'EUR',
       },
+      client: { name: data.name, email: data.email, phone: data.phone, company: data.company },
     };
-    console.log('[ORDER PAYLOAD]', payload);
-    setOrderId(order_id);
-    setSubmitted(true);
+
+    if (data.tier === 'custom') {
+      // Custom tier does not flow through Stripe checkout. Capture the brief and
+      // hand off to a strategy call.
+      try {
+        await saveQuestionnaireStep(sessionId, data.tier, STEPS.length, answers);
+      } catch (err) {
+        // Best-effort save; continue to booking either way.
+      }
+      bookStrategyCall();
+      setOrderId('CUSTOM-PENDING');
+      setSubmitted(true);
+      return;
+    }
+
+    setSubmitting(true);
+    const result = await submitQuestionnaire({
+      sessionId,
+      tier: data.tier as ServerTier,
+      answers,
+      customerEmail: data.email,
+      customerName: data.name,
+    });
+
+    if ('error' in result) {
+      setSubmitError(result.error);
+      setSubmitting(false);
+      return;
+    }
+
+    // Hand the user off to Stripe-hosted Checkout.
+    window.location.href = result.checkoutUrl;
   };
 
   if (!open) return null;
@@ -820,13 +882,13 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
               >
                 <Icon.Check className="w-7 h-7 accent" />
               </div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.28em] accent">// ORDER LOCKED</div>
-              <h3 className="font-display font-bold text-3xl tracking-tight mt-2 text-1">Welcome aboard.</h3>
+              <div className="font-mono text-[10px] uppercase tracking-[0.28em] accent">// STRATEGY CALL OPENING</div>
+              <h3 className="font-display font-bold text-3xl tracking-tight mt-2 text-1">Pick a time that works.</h3>
               <p className="text-2 mt-3 max-w-md mx-auto">
-                Your order <span className="font-mono accent">{orderId}</span> is in. We've emailed you the contract preview and the Stripe checkout link for your 50% deposit.
+                Your custom build needs a 30-minute discovery call to scope properly. We've opened the booking page in a new tab — pick a slot and we'll send a tailored quote within 24 hours.
               </p>
               <div className="mt-7 inline-flex flex-col items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-mut">
-                <span>NEXT: SIGN CONTRACT → PAY DEPOSIT → DISCOVERY CALL</span>
+                <span>NEXT: BOOK CALL → CUSTOM QUOTE → CONTRACT</span>
               </div>
               <button
                 onClick={onClose}
@@ -871,14 +933,25 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                   Continue <Icon.ArrowRight className="w-3.5 h-3.5" />
                 </button>
               ) : (
-                <button
-                  onClick={submit}
-                  disabled={!validateStep()}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition disabled:opacity-40 disabled:cursor-not-allowed gold-pulse"
-                  style={{ background: 'var(--gold)', color: '#000' }}
-                >
-                  Pay €{totals.deposit.toLocaleString()} & Start <Icon.ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex flex-col items-end gap-1.5">
+                  <button
+                    onClick={submit}
+                    disabled={!validateStep() || submitting}
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition disabled:opacity-40 disabled:cursor-not-allowed gold-pulse"
+                    style={{ background: 'var(--gold)', color: '#000' }}
+                  >
+                    {submitting
+                      ? 'Redirecting to Stripe…'
+                      : isCustom
+                      ? <>Book Strategy Call <Icon.ArrowRight className="w-3.5 h-3.5" /></>
+                      : <>Pay €{totals.deposit.toLocaleString()} &amp; Start <Icon.ArrowRight className="w-3.5 h-3.5" /></>}
+                  </button>
+                  {submitError && (
+                    <span className="font-mono text-[10px] text-red-400 max-w-[260px] text-right">
+                      {submitError}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}

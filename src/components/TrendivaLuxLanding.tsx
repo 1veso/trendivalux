@@ -9,6 +9,7 @@ import { FAQ } from './FAQ';
 import { FinalCTA, StickyBar } from './FinalCTA';
 import { Footer, WaitlistModal, ContactModal } from './Footer';
 import { OrderModal } from './OrderModal';
+import { bookStrategyCall } from '../lib/order-modal';
 
 declare global {
   interface Window {
@@ -18,8 +19,9 @@ declare global {
 }
 
 const handleBookStrategyCall = () => {
-  console.log('[STUB] Book strategy call → Cal.com');
+  bookStrategyCall();
 };
+// Waitlist signup is wired in Prompt 3 along with the rest of the auxiliary capture forms.
 const handleWaitlistSignup = (email: string) => {
   console.log(`[STUB] Waitlist signup: ${email}`);
 };
