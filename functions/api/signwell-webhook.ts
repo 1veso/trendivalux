@@ -47,8 +47,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const valid = await verifySignWellWebhook(rawBody, signature, env.SIGNWELL_WEBHOOK_SECRET);
   if (!valid) {
+    console.warn('[signwell-webhook] signature verification failed', { timestamp: Date.now() });
     return new Response('Invalid signature', { status: 401 });
   }
+
+  console.log('[signwell-webhook] signature verified', { timestamp: Date.now() });
 
   let body: SignWellWebhookBody;
   try {

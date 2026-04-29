@@ -58,9 +58,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
     event = await stripe.webhooks.constructEventAsync(rawBody, signature, env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
+    // Log internally but do not echo validation details to the caller —
+    // returning the underlying message would help an attacker probe the secret.
     const message = err instanceof Error ? err.message : 'unknown';
-    return new Response(`Webhook signature verification failed: ${message}`, { status: 400 });
+    console.warn('[stripe-webhook] signature verification failed', { message, timestamp: Date.now() });
+    return new Response('Invalid signature', { status: 400 });
   }
+
+  console.log('[stripe-webhook] signature verified', { eventType: event.type, eventId: event.id, timestamp: Date.now() });
 
   try {
     switch (event.type) {
