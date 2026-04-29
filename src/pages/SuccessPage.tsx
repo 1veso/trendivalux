@@ -45,16 +45,16 @@ export default function SuccessPage() {
   }, [orderId]);
 
   return (
-    <div className="min-h-screen grid place-items-center p-8" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+    <div className="min-h-screen grid place-items-center px-4 sm:px-6 py-10 sm:p-8" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
       <SEO title="Order Confirmed" pathname="/success" noIndex />
       <div className="max-w-2xl text-center">
         <div
-          className="font-mono text-[10px] uppercase tracking-[0.28em] mb-4"
+          className="font-mono text-[10px] uppercase tracking-[0.24em] sm:tracking-[0.28em] mb-4"
           style={{ color: orderConfirmed ? 'var(--accent)' : 'var(--accent-2)' }}
         >
           // {orderConfirmed ? 'ORDER CONFIRMED' : pollExhausted ? 'AWAITING CONFIRMATION' : 'CONFIRMING PAYMENT'}
         </div>
-        <h1 className="font-display font-bold text-5xl md:text-6xl tracking-tight">
+        <h1 className="font-display font-bold text-3xl sm:text-5xl md:text-6xl tracking-tight leading-tight">
           <span
             style={{
               backgroundImage: 'linear-gradient(90deg, var(--accent-2), var(--accent))',
@@ -66,7 +66,7 @@ export default function SuccessPage() {
             Welcome to TrendivaLux.
           </span>
         </h1>
-        <p className="text-xl text-2 mt-6 leading-relaxed">
+        <p className="text-base sm:text-xl text-2 mt-5 sm:mt-6 leading-relaxed">
           Your deposit is in. The service agreement is on its way to your inbox along with the discovery call link. Work begins within 24 hours.
         </p>
 

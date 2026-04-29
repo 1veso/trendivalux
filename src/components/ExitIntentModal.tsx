@@ -34,32 +34,34 @@ export const ExitIntentModal = ({ open, onClose, onSubmit }: ExitIntentModalProp
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center p-4">
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div
         className="absolute inset-0 backdrop-blur-md"
         style={{ background: 'color-mix(in oklab, var(--bg) 82%, transparent)' }}
         onClick={onClose}
       />
       <div
-        className="relative w-full max-w-md rounded-2xl border bd overflow-hidden"
+        className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border bd overflow-hidden"
         style={{
           background: 'var(--surface)',
           boxShadow:
             '0 30px 80px -20px color-mix(in oklab, var(--accent-2) 30%, transparent), 0 0 0 1px color-mix(in oklab, var(--accent-2) 18%, transparent) inset',
           animation: 'modal-in 420ms cubic-bezier(.2,.7,.1,1) both',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          overscrollBehavior: 'contain',
         }}
       >
         <style>{`@keyframes modal-in { from { transform: translateY(20px) scale(0.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }`}</style>
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full border bd hover:opacity-70 transition z-10"
+          className="absolute top-3 right-3 w-11 h-11 grid place-items-center rounded-full border bd hover:opacity-70 transition z-10"
           aria-label="Close"
           type="button"
         >
           <Icon.Close className="w-3.5 h-3.5 text-2" />
         </button>
 
-        <div className="p-7">
+        <div className="p-6 sm:p-7">
           {!done ? (
             <>
               <div className="font-mono text-[10px] uppercase tracking-[0.28em] accent-2">// BEFORE YOU GO</div>
@@ -98,13 +100,13 @@ export const ExitIntentModal = ({ open, onClose, onSubmit }: ExitIntentModalProp
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@business.com"
-                  className="w-full px-4 py-3 rounded-lg border bd font-mono text-sm focus:outline-none"
-                  style={{ background: 'var(--surface-2)', color: 'var(--text)' }}
+                  className="w-full min-h-[48px] px-4 py-3 rounded-lg border bd font-mono text-base focus:outline-none"
+                  style={{ background: 'var(--surface-2)', color: 'var(--text)', fontSize: '16px' }}
                 />
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition disabled:opacity-60"
+                  className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition disabled:opacity-60"
                   style={{ background: 'var(--accent-2)', color: '#000' }}
                 >
                   {submitting ? 'Sending…' : <>Send My Audit <Icon.ArrowRight className="w-3.5 h-3.5" /></>}

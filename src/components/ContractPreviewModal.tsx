@@ -179,29 +179,31 @@ export default function ContractPreviewModal({
       role="dialog"
       aria-modal="true"
       aria-label="Service Agreement Preview"
-      className="fixed inset-0 z-[100] flex items-start md:items-center justify-center p-3 md:p-6"
+      className="fixed inset-0 z-[100] flex items-end sm:items-start md:items-center justify-center p-0 sm:p-3 md:p-6"
       style={{ background: 'color-mix(in oklab, var(--bg) 88%, transparent)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl border bd"
+        className="relative w-full sm:max-w-3xl max-h-[100svh] sm:max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border bd"
         style={{
           background: 'var(--surface)',
           boxShadow:
             '0 30px 80px -20px color-mix(in oklab, var(--gold) 25%, transparent), 0 0 0 1px color-mix(in oklab, var(--gold) 25%, transparent) inset',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          overscrollBehavior: 'contain',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <header
-          className="sticky top-0 z-10 px-6 md:px-8 pt-5 pb-4 border-b bd backdrop-blur-md flex items-center justify-between gap-4"
-          style={{ background: 'color-mix(in oklab, var(--surface) 88%, transparent)' }}
+          className="sticky top-0 z-10 px-5 sm:px-6 md:px-8 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b bd backdrop-blur-md flex items-center justify-between gap-4"
+          style={{ background: 'color-mix(in oklab, var(--surface) 92%, transparent)' }}
         >
-          <p className="font-mono text-[10px] uppercase tracking-[0.28em] gold">
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] sm:tracking-[0.28em] gold">
             // SERVICE AGREEMENT // PREVIEW
           </p>
           <button
             onClick={onClose}
-            className="shrink-0 grid place-items-center w-8 h-8 rounded-full border bd hover:opacity-70 transition"
+            className="shrink-0 grid place-items-center w-11 h-11 rounded-full border bd hover:opacity-70 transition"
             aria-label="Close preview"
             type="button"
           >
@@ -209,7 +211,7 @@ export default function ContractPreviewModal({
           </button>
         </header>
 
-        <div className="px-6 md:px-10 py-7 text-2">
+        <div className="px-5 sm:px-6 md:px-10 py-6 sm:py-7 text-2">
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut text-center mb-6">
             Vorschau / Preview — der finale Vertrag wird nach Zahlung über SignWell zur digitalen Unterschrift
             versendet. / The final contract will be sent for digital signature via SignWell after payment.
@@ -223,13 +225,13 @@ export default function ContractPreviewModal({
         </div>
 
         <footer
-          className="sticky bottom-0 px-6 md:px-8 py-4 border-t bd backdrop-blur-md flex justify-end"
-          style={{ background: 'color-mix(in oklab, var(--surface) 88%, transparent)' }}
+          className="sticky bottom-0 px-5 sm:px-6 md:px-8 py-3 sm:py-4 border-t bd backdrop-blur-md flex justify-end"
+          style={{ background: 'color-mix(in oklab, var(--surface) 92%, transparent)' }}
         >
           <button
             onClick={onClose}
             type="button"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition"
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition"
             style={{ background: 'var(--accent)', color: '#000' }}
           >
             Got it <Icon.ArrowRight className="w-3.5 h-3.5" />

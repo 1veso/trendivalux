@@ -145,22 +145,24 @@ export const WaitlistModal = ({
   }, [open]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'color-mix(in oklab, var(--bg) 80%, transparent)' }} onClick={onClose} />
       <div
-        className="relative w-full max-w-md rounded-2xl border bd overflow-hidden"
+        className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border bd overflow-hidden"
         style={{
           background: 'var(--surface)',
           boxShadow: '0 30px 80px -20px color-mix(in oklab, var(--accent) 25%, transparent), 0 0 0 1px color-mix(in oklab, var(--accent) 15%, transparent) inset',
           animation: 'modal-in 400ms cubic-bezier(.2,.7,.1,1) both',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          overscrollBehavior: 'contain',
         }}
       >
         <style>{`@keyframes modal-in { from { transform: translateY(20px) scale(0.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }`}</style>
-        <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full border bd hover:opacity-70 transition" aria-label="Close">
+        <button onClick={onClose} className="absolute top-3 right-3 w-11 h-11 grid place-items-center rounded-full border bd hover:opacity-70 transition" aria-label="Close">
           <Icon.Close className="w-3.5 h-3.5 text-2" />
         </button>
 
-        <div className="p-7">
+        <div className="p-6 sm:p-7">
           {!done ? (
             <>
               <div className="font-mono text-[10px] uppercase tracking-[0.28em] accent">// WAITLIST</div>
@@ -194,13 +196,13 @@ export const WaitlistModal = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@business.com"
-                  className="w-full px-4 py-3 rounded-lg border bd font-mono text-sm focus:outline-none"
-                  style={{ background: 'var(--surface-2)', color: 'var(--text)' }}
+                  className="w-full min-h-[48px] px-4 py-3 rounded-lg border bd font-mono focus:outline-none"
+                  style={{ background: 'var(--surface-2)', color: 'var(--text)', fontSize: '16px' }}
                 />
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition disabled:opacity-60"
+                  className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition disabled:opacity-60"
                   style={{ background: 'var(--accent)', color: '#000' }}
                 >
                   {submitting ? 'Joining…' : <>Join Waitlist <Icon.ArrowRight className="w-3.5 h-3.5" /></>}
@@ -268,22 +270,24 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
   };
 
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'color-mix(in oklab, var(--bg) 80%, transparent)' }} onClick={onClose} />
       <div
-        className="relative w-full max-w-lg rounded-2xl border bd overflow-hidden"
+        className="relative w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border bd overflow-hidden max-h-[100svh] sm:max-h-[92vh] overflow-y-auto"
         style={{
           background: 'var(--surface)',
           boxShadow: '0 30px 80px -20px color-mix(in oklab, var(--accent) 25%, transparent), 0 0 0 1px color-mix(in oklab, var(--accent) 15%, transparent) inset',
           animation: 'modal-in 400ms cubic-bezier(.2,.7,.1,1) both',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          overscrollBehavior: 'contain',
         }}
       >
         <style>{`@keyframes modal-in { from { transform: translateY(20px) scale(0.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }`}</style>
-        <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full border bd hover:opacity-70 transition z-10" aria-label="Close">
+        <button onClick={onClose} className="absolute top-3 right-3 w-11 h-11 grid place-items-center rounded-full border bd hover:opacity-70 transition z-10" aria-label="Close">
           <Icon.Close className="w-3.5 h-3.5 text-2" />
         </button>
 
-        <div className="p-7">
+        <div className="p-6 sm:p-7">
           {!done ? (
             <>
               <div className="font-mono text-[10px] uppercase tracking-[0.28em] accent">// CONTACT</div>
@@ -297,8 +301,8 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
-                    className="px-4 py-3 rounded-lg border bd font-mono text-sm focus:outline-none focus:ring-1"
-                    style={{ background: 'var(--surface-2)', color: 'var(--text)' }}
+                    className="min-h-[48px] px-4 py-3 rounded-lg border bd font-mono focus:outline-none focus:ring-1"
+                    style={{ background: 'var(--surface-2)', color: 'var(--text)', fontSize: '16px' }}
                   />
                   <input
                     type="email"
@@ -306,8 +310,8 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@business.com"
-                    className="px-4 py-3 rounded-lg border bd font-mono text-sm focus:outline-none focus:ring-1"
-                    style={{ background: 'var(--surface-2)', color: 'var(--text)' }}
+                    className="min-h-[48px] px-4 py-3 rounded-lg border bd font-mono focus:outline-none focus:ring-1"
+                    style={{ background: 'var(--surface-2)', color: 'var(--text)', fontSize: '16px' }}
                   />
                 </div>
                 <textarea
@@ -316,13 +320,13 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="A few lines about what you're building…"
                   rows={5}
-                  className="w-full px-4 py-3 rounded-lg border bd font-mono text-sm focus:outline-none resize-none"
-                  style={{ background: 'var(--surface-2)', color: 'var(--text)' }}
+                  className="w-full px-4 py-3 rounded-lg border bd font-mono focus:outline-none resize-none"
+                  style={{ background: 'var(--surface-2)', color: 'var(--text)', fontSize: '16px' }}
                 />
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition disabled:opacity-60"
+                  className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition disabled:opacity-60"
                   style={{ background: 'var(--accent)', color: '#000' }}
                 >
                   {submitting ? (

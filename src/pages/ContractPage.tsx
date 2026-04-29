@@ -128,22 +128,21 @@ export default function ContractPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-8" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+    <div className="min-h-screen px-4 sm:p-6 md:p-8 py-6" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
       <SEO title="Service Agreement" pathname="/contract" noIndex />
       <div className="max-w-4xl mx-auto">
-        <header className="mb-6">
+        <header className="mb-5 sm:mb-6">
           <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-mut">// SERVICE AGREEMENT</div>
-          <h1 className="font-display font-bold text-3xl tracking-tight mt-1">Sign to begin work</h1>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut mt-2">
+          <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tight mt-1">Sign to begin work</h1>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut mt-2 break-words">
             Order #{order.id.slice(0, 8)} :: {tierLabel} :: {order.customer_email}
           </p>
         </header>
         <div
-          className="rounded-2xl border bd overflow-hidden"
+          className="rounded-2xl border bd overflow-hidden h-[78svh] sm:h-[80vh] min-h-[480px]"
           style={{
             background: 'var(--surface)',
             boxShadow: '0 30px 80px -20px color-mix(in oklab, var(--accent-2) 22%, transparent), 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent) inset',
-            height: '80vh',
           }}
         >
           <iframe

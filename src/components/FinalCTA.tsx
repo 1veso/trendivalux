@@ -88,7 +88,10 @@ export const StickyBar = ({
       : `${remainingSlots} slot${remainingSlots === 1 ? '' : 's'} remaining`;
 
   return (
-    <div className={`fixed inset-x-0 bottom-0 z-40 transition-all duration-500 ${show ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'}`}>
+    <div
+      className={`fixed inset-x-0 bottom-0 z-40 transition-all duration-500 ${show ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'}`}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div
         className="border-t backdrop-blur-xl"
         style={{
@@ -97,20 +100,20 @@ export const StickyBar = ({
           boxShadow: '0 -10px 40px -10px color-mix(in oklab, var(--accent-2) 30%, transparent)',
         }}
       >
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-10 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em]">
-            <span className="relative flex h-2 w-2">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 h-14 flex items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.18em] sm:tracking-[0.22em] min-w-0">
+            <span className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--accent-2)' }} />
               <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: 'var(--accent-2)' }} />
             </span>
-            <span className="text-1">{labelText}</span>
+            <span className="text-1 truncate">{labelText}</span>
             <span className="hidden sm:inline text-mut">— {MONTH_LABEL}</span>
           </div>
           {isBookedOut && onWaitlist ? (
             <button
               onClick={onWaitlist}
               type="button"
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition cursor-pointer shrink-0"
               style={{ background: 'var(--accent)', color: '#000' }}
             >
               Join Waitlist <Icon.ArrowRight className="w-3 h-3" />
@@ -122,7 +125,7 @@ export const StickyBar = ({
                 e.preventDefault();
                 onReserve?.('landing');
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition cursor-pointer shrink-0"
               style={{ background: 'var(--gold)', color: '#000' }}
             >
               Reserve Slot <Icon.ArrowRight className="w-3 h-3" />
