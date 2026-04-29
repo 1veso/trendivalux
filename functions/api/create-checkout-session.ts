@@ -3,6 +3,14 @@ import { createStripeClient } from '../_shared/stripe-client';
 import { createAdminClient } from '../_shared/supabase-admin';
 import { computeDepositLineItems, isServerTier, type ServerTierId } from '../../src/config/pricing';
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '../_shared/rate-limit';
+import {
+  validateBoolean,
+  validateEmail,
+  validateEnum,
+  validatePlainObject,
+  validateString,
+  validateUuid,
+} from '../_shared/validation';
 import type { Env } from '../_shared/env';
 
 interface CheckoutRequest {
@@ -27,15 +35,38 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   try {
-    const body = (await request.json()) as CheckoutRequest;
-    const { sessionId, tier, answers, customerEmail, customerName, customerType, acceptedWidereufWaiver } = body;
+    const rawBody = (await request.json()) as Partial<CheckoutRequest>;
 
-    if (!sessionId || !tier || !customerEmail) {
-      return new Response('Missing required fields', { status: 400 });
+    const sessionId = validateUuid(rawBody.sessionId);
+    if (!sessionId) {
+      return new Response('Invalid sessionId', { status: 400 });
     }
 
-    if (customerType !== 'b2b' && customerType !== 'b2c') {
+    const customerEmail = validateEmail(rawBody.customerEmail);
+    if (!customerEmail) {
+      return new Response('Invalid customer email', { status: 400 });
+    }
+
+    // customerName is optional; if present it must be a clean string ≤200 chars.
+    let customerName: string | null = null;
+    if (rawBody.customerName !== undefined && rawBody.customerName !== null && rawBody.customerName !== '') {
+      customerName = validateString(rawBody.customerName, 200);
+      if (!customerName) {
+        return new Response('Invalid customer name', { status: 400 });
+      }
+    }
+
+    const customerType = validateEnum(rawBody.customerType, ['b2b', 'b2c'] as const);
+    if (!customerType) {
       return new Response('Missing or invalid customerType (must be "b2b" or "b2c")', { status: 400 });
+    }
+
+    // acceptedWidereufWaiver must be an actual boolean if present (we treat
+    // undefined as false). For B2C the gate below requires true.
+    const acceptedWidereufWaiver =
+      rawBody.acceptedWidereufWaiver === undefined ? false : validateBoolean(rawBody.acceptedWidereufWaiver);
+    if (acceptedWidereufWaiver === null) {
+      return new Response('Invalid acceptedWidereufWaiver (must be boolean)', { status: 400 });
     }
 
     // Statutorily required: B2C orders cannot proceed without an explicit
@@ -44,12 +75,18 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       return new Response('B2C orders require explicit acceptance of Widerrufsrecht waiver', { status: 400 });
     }
 
-    if (!isServerTier(tier)) {
+    const tier = rawBody.tier;
+    if (typeof tier !== 'string' || !isServerTier(tier)) {
       // 'custom' tier and unknown tiers cannot run through Checkout. The client
       // routes 'custom' to Cal.com instead of hitting this endpoint.
-      return new Response(`Tier '${tier}' does not support direct checkout`, { status: 400 });
+      return new Response('Tier does not support direct checkout', { status: 400 });
     }
     const serverTier: ServerTierId = tier;
+
+    const answers = validatePlainObject(rawBody.answers);
+    if (!answers) {
+      return new Response('Invalid answers payload', { status: 400 });
+    }
 
     // Extract addon selection from the questionnaire answers. Server is
     // authoritative for pricing — we recompute from the source-of-truth in
