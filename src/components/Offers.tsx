@@ -222,7 +222,7 @@ export const Offers = ({
     </div>
     <div className="absolute inset-x-0 top-0 h-px sunset-line opacity-50" />
 
-    <div className="relative max-w-[1400px] mx-auto px-6 lg:px-10">
+    <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
       <div className="max-w-2xl">
         <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.28em] accent-2">
           <span className="h-px w-10" style={{ background: 'color-mix(in oklab, var(--accent-2) 60%, transparent)' }} />
@@ -238,7 +238,7 @@ export const Offers = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 mt-14">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5 mt-10 md:mt-14">
         {TIERS.map((t) => (
           <TierCard key={t.id} tier={t} onReserve={onReserve} onCall={onCall} />
         ))}

@@ -7,9 +7,9 @@ export const Footer = ({ theme }: { theme: string }) => {
   return (
     <footer className="relative bg-app border-t bd">
       <div className="absolute inset-x-0 top-0 h-px sunset-line opacity-60" />
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
-          <div className="col-span-2">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-12 sm:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10">
+          <div className="sm:col-span-2">
             <div className="flex items-center gap-3">
               <div
                 className="relative w-11 h-11 rounded-lg overflow-hidden grid place-items-center"
@@ -105,9 +105,9 @@ export const Footer = ({ theme }: { theme: string }) => {
         </div>
       </div>
 
-      <div className="relative h-[120px] md:h-[180px] overflow-hidden border-t bd">
+      <div className="relative h-[80px] sm:h-[120px] md:h-[180px] overflow-hidden border-t bd">
         <div className="absolute inset-0 grid place-items-center">
-          <div className="font-marquee text-[18vw] leading-none tracking-[0.02em] select-none whitespace-nowrap uppercase neon-tube" style={{ opacity: 0.55 }}>
+          <div className="font-marquee text-[16vw] md:text-[18vw] leading-none tracking-[0.02em] select-none whitespace-nowrap uppercase neon-tube" style={{ opacity: 0.55 }}>
             TRENDIVALUX
           </div>
         </div>

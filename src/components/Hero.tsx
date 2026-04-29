@@ -171,7 +171,7 @@ export const TopNav = ({
         borderColor: scrolled ? 'var(--border)' : 'transparent',
       }}
     >
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between">
         <a href="#top" className="flex items-center gap-3 group">
           <div
             className="relative w-11 h-11 rounded-lg overflow-hidden grid place-items-center transition"
@@ -282,14 +282,14 @@ export const Hero = ({ theme, remainingSlots }: { theme: string; remainingSlots?
       </div>
 
       <div
-        className="relative z-20 max-w-[1400px] mx-auto px-6 lg:px-10 pt-36 md:pt-44 pb-24 md:pb-32"
+        className="relative z-20 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 pt-28 sm:pt-36 md:pt-44 pb-20 md:pb-32"
         style={{ opacity: fade, transform: `translateY(${y * 0.08}px)` }}
       >
         <FadeUp delay={300}>
-          <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.28em] accent">
-            <span className="h-px w-10" style={{ background: 'color-mix(in oklab, var(--accent) 60%, transparent)' }} />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.22em] sm:tracking-[0.28em] accent">
+            <span className="h-px w-8 sm:w-10" style={{ background: 'color-mix(in oklab, var(--accent) 60%, transparent)' }} />
             <span>{eyebrow}</span>
-            <span className="text-mut">//</span>
+            <span className="text-mut hidden sm:inline">//</span>
             <span className="accent-2">{eyebrowAccent}</span>
           </div>
         </FadeUp>
