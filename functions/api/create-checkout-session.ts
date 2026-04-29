@@ -10,15 +10,27 @@ interface CheckoutRequest {
   answers: Record<string, unknown>;
   customerEmail?: string;
   customerName?: string;
+  customerType?: 'b2b' | 'b2c';
+  acceptedWidereufWaiver?: boolean;
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
     const body = (await request.json()) as CheckoutRequest;
-    const { sessionId, tier, answers, customerEmail, customerName } = body;
+    const { sessionId, tier, answers, customerEmail, customerName, customerType, acceptedWidereufWaiver } = body;
 
     if (!sessionId || !tier || !customerEmail) {
       return new Response('Missing required fields', { status: 400 });
+    }
+
+    if (customerType !== 'b2b' && customerType !== 'b2c') {
+      return new Response('Missing or invalid customerType (must be "b2b" or "b2c")', { status: 400 });
+    }
+
+    // Statutorily required: B2C orders cannot proceed without an explicit
+    // Widerrufsrecht waiver. Client UI enforces this; the server is the safety net.
+    if (customerType === 'b2c' && !acceptedWidereufWaiver) {
+      return new Response('B2C orders require explicit acceptance of Widerrufsrecht waiver', { status: 400 });
     }
 
     if (!isServerTier(tier)) {
@@ -52,6 +64,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         customer_name: customerName || null,
         questionnaire_data: {
           ...(answers as Record<string, unknown>),
+          customer_type: customerType,
+          widerruf_waiver_accepted: customerType === 'b2c' ? !!acceptedWidereufWaiver : false,
           // Audit snapshot of what the server computed at checkout time.
           server_computed: {
             tier: serverTier,
@@ -100,11 +114,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         order_id: order.id,
         tier: serverTier,
         questionnaire_session_id: sessionId,
+        customer_type: customerType,
+        widerruf_waiver_accepted: customerType === 'b2c' ? String(!!acceptedWidereufWaiver) : 'n/a',
       },
       payment_intent_data: {
         metadata: {
           order_id: order.id,
           tier: serverTier,
+          customer_type: customerType,
         },
       },
       locale: 'de',

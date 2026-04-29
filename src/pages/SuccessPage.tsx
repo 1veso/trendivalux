@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import SEO from '../components/SEO';
 
 const PAID_STATUSES = new Set(['paid', 'contract_sent', 'active', 'completed']);
 
@@ -45,6 +46,7 @@ export default function SuccessPage() {
 
   return (
     <div className="min-h-screen grid place-items-center p-8" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+      <SEO title="Order Confirmed" pathname="/success" noIndex />
       <div className="max-w-2xl text-center">
         <div
           className="font-mono text-[10px] uppercase tracking-[0.28em] mb-4"

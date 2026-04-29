@@ -115,6 +115,20 @@ export function computeDepositLineItems(
   const totalDepositCents = items.reduce((s, it) => s + it.unitAmountCents, 0);
   const totalSubtotalCents = items.reduce((s, it) => s + it.fullAmountCents, 0);
 
+  // Runtime sanity check: line item count must equal 1 (tier base) + flat addons
+  // selected + (1 if rush). Catches silent regressions where addons get dropped
+  // between client state and Stripe checkout. Logs a warning rather than throwing
+  // so a bad regression never blocks a paying customer at checkout.
+  const expectedFlatAddons = selectedAddonIds.filter(
+    (a) => a in ADDON_FLAT_EUR,
+  ).length;
+  const expectedCount = 1 + expectedFlatAddons + (hasRush ? 1 : 0);
+  if (items.length !== expectedCount) {
+    console.error(
+      `[pricing] computeDepositLineItems count mismatch: got ${items.length}, expected ${expectedCount}. tier=${tier} addons=${JSON.stringify(selectedAddonIds)} rush=${hasRush}`,
+    );
+  }
+
   return { lineItems: items, totalDepositCents, totalSubtotalCents, chargedAddonIds: charged };
 }
 

@@ -9,7 +9,14 @@ import { FAQ } from './FAQ';
 import { FinalCTA, StickyBar } from './FinalCTA';
 import { Footer, WaitlistModal, ContactModal } from './Footer';
 import { OrderModal } from './OrderModal';
+import { ExitIntentModal } from './ExitIntentModal';
+import { CookieBanner } from './CookieBanner';
 import { bookStrategyCall } from '../lib/order-modal';
+import { captureWaitlistEmail, captureSiteAuditLead } from '../lib/email-capture';
+import { useExitIntent } from '../hooks/useExitIntent';
+import { trackEvent } from '../lib/analytics';
+import { getRemainingSlots } from '../lib/scarcity';
+import SEO from './SEO';
 
 declare global {
   interface Window {
@@ -21,9 +28,17 @@ declare global {
 const handleBookStrategyCall = () => {
   bookStrategyCall();
 };
-// Waitlist signup is wired in Prompt 3 along with the rest of the auxiliary capture forms.
-const handleWaitlistSignup = (email: string) => {
-  console.log(`[STUB] Waitlist signup: ${email}`);
+
+const handleWaitlistSignup = async (email: string) => {
+  const result = await captureWaitlistEmail(email);
+  if (result.success) trackEvent('Waitlist Signup');
+  return result;
+};
+
+const handleSiteAuditLead = async (email: string) => {
+  const result = await captureSiteAuditLead(email);
+  if (result.success) trackEvent('Site Audit Lead');
+  return result;
 };
 
 const Reveal = ({ children, delay = 0 }: { children: any; delay?: number }) => {
@@ -74,11 +89,17 @@ export default function TrendivaLuxLanding() {
   });
   const [orderOpen, setOrderOpen] = useState(false);
   const [orderTier, setOrderTier] = useState('landing');
+  const [remainingSlots, setRemainingSlots] = useState<number | null>(null);
+  const { shouldShow: showExitIntent, dismiss: dismissExitIntent } = useExitIntent();
 
   const openOrder = (tierId: string = 'landing') => {
     setOrderTier(tierId);
     setOrderOpen(true);
   };
+
+  useEffect(() => {
+    getRemainingSlots().then(setRemainingSlots);
+  }, []);
 
   useEffect(() => {
     window.openOrderModal = openOrder;
@@ -112,8 +133,9 @@ export default function TrendivaLuxLanding() {
 
   return (
     <div className="relative">
+      <SEO />
       <TopNav scrolled={scrolled} theme={theme} onToggle={toggleTheme} />
-      <Hero theme={theme} />
+      <Hero theme={theme} remainingSlots={remainingSlots} />
       <Reveal>
         <Builds />
       </Reveal>
@@ -136,10 +158,16 @@ export default function TrendivaLuxLanding() {
         <FinalCTA onWaitlist={() => setWaitlistOpen(true)} />
       </Reveal>
       <Footer theme={theme} />
-      <StickyBar onReserve={openOrder} />
+      <StickyBar onReserve={openOrder} remainingSlots={remainingSlots} onWaitlist={() => setWaitlistOpen(true)} />
       <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} onSubmit={handleWaitlistSignup} />
       <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} initialTier={orderTier} />
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
+      <ExitIntentModal
+        open={showExitIntent}
+        onClose={dismissExitIntent}
+        onSubmit={handleSiteAuditLead}
+      />
+      <CookieBanner />
     </div>
   );
 }

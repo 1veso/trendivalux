@@ -15,6 +15,8 @@ import {
   TIER_BASE_EUR,
   TIER_NAMES,
 } from '../config/pricing';
+import ContractPreviewModal from './ContractPreviewModal';
+import { trackEvent } from '../lib/analytics';
 
 // Display-shape constants for the OrderModal. Prices come from src/config/pricing.ts
 // (single source of truth shared with the server). Local fields like timeline/days
@@ -324,10 +326,13 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
     company: '',
     accept_terms: false,
     accept_50: false,
+    customer_type: null as 'b2b' | 'b2c' | null,
+    accept_widerruf_waiver: false,
   });
 
   const [showMotionUpsell, setShowMotionUpsell] = useState(false);
   const [showMaintenanceUpsell, setShowMaintenanceUpsell] = useState(false);
+  const [showContractPreview, setShowContractPreview] = useState(false);
 
   const set = (k: string, v: any) => setData((d: any) => ({ ...d, [k]: typeof v === 'function' ? v(d[k]) : v }));
 
@@ -336,18 +341,45 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.tier]);
 
+  // When customer type changes, reset all confirmation checkboxes so a B2B-checked
+  // customer cannot bypass the B2C waiver by toggling the selector at the end.
+  useEffect(() => {
+    setData((d: any) => ({
+      ...d,
+      accept_50: false,
+      accept_terms: false,
+      accept_widerruf_waiver: false,
+    }));
+    if (data.customer_type) {
+      trackEvent('Customer Type Selected', { type: data.customer_type });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.customer_type]);
+
   useEffect(() => {
     if (!open) {
       setStep(0);
       setSubmitted(false);
       setShowMotionUpsell(false);
       setShowMaintenanceUpsell(false);
+      setShowContractPreview(false);
       setSubmitError(null);
       setSubmitting(false);
     } else {
       // Fresh draft on each open. Closes orphan any prior unfinished draft (kept in DB).
       setSessionId(getOrCreateSessionId());
+      // Force re-acknowledgment of the contract on every fresh open so users can't
+      // bypass review by closing and reopening.
+      setData((d: any) => ({
+        ...d,
+        accept_terms: false,
+        accept_50: false,
+        customer_type: null,
+        accept_widerruf_waiver: false,
+      }));
+      trackEvent('OrderModal Opened', { tier: data.tier });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Debounced save-on-blur: persist the questionnaire ~700ms after any field change.
@@ -394,7 +426,17 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
       case 'brand': return true;
       case 'references': return true;
       case 'deadline': return !!data.deadline && (data.deadline !== 'specific' || !!data.deadline_date);
-      case 'contact': return data.name.trim() && /\S+@\S+\.\S+/.test(data.email) && data.accept_terms && data.accept_50;
+      case 'contact': {
+        const baseValid =
+          data.name.trim() &&
+          /\S+@\S+\.\S+/.test(data.email) &&
+          !!data.customer_type &&
+          data.accept_50 &&
+          data.accept_terms;
+        if (!baseValid) return false;
+        if (data.customer_type === 'b2c' && !data.accept_widerruf_waiver) return false;
+        return true;
+      }
       default: return true;
     }
   };
@@ -409,6 +451,7 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
       setShowMaintenanceUpsell(true);
       return;
     }
+    trackEvent('OrderModal Step Completed', { step: STEPS[step].id, tier: data.tier });
     setDirection(1);
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
@@ -445,6 +488,8 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
         currency: 'EUR',
       },
       client: { name: data.name, email: data.email, phone: data.phone, company: data.company },
+      customer_type: data.customer_type,
+      widerruf_waiver_accepted: data.customer_type === 'b2c' ? !!data.accept_widerruf_waiver : false,
     };
 
     if (data.tier === 'custom') {
@@ -468,6 +513,8 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
       answers,
       customerEmail: data.email,
       customerName: data.name,
+      customerType: data.customer_type as 'b2b' | 'b2c',
+      acceptedWidereufWaiver: data.customer_type === 'b2c' ? !!data.accept_widerruf_waiver : false,
     });
 
     if ('error' in result) {
@@ -476,6 +523,7 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
       return;
     }
 
+    trackEvent('Checkout Initiated', { tier: data.tier });
     // Hand the user off to Stripe-hosted Checkout.
     window.location.href = result.checkoutUrl;
   };
@@ -781,6 +829,49 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
 
               {stepDef.id === 'contact' && (
                 <div className="grid gap-5">
+                  <div>
+                    <FieldLabel>Customer type / Kundentyp</FieldLabel>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {[
+                        {
+                          id: 'b2b' as const,
+                          title: 'Unternehmen / Business',
+                          sub: 'Ich bestelle als Unternehmen / I am ordering as a business',
+                        },
+                        {
+                          id: 'b2c' as const,
+                          title: 'Privatperson / Consumer',
+                          sub: 'Ich bestelle als Privatperson / I am ordering as a consumer',
+                        },
+                      ].map((o) => {
+                        const active = data.customer_type === o.id;
+                        return (
+                          <button
+                            key={o.id}
+                            type="button"
+                            onClick={() => set('customer_type', o.id)}
+                            className="text-left p-4 rounded-xl border transition"
+                            style={{
+                              background: active
+                                ? 'color-mix(in oklab, var(--accent) 12%, transparent)'
+                                : 'var(--surface-2)',
+                              borderColor: active ? 'var(--accent)' : 'var(--border)',
+                              boxShadow: active ? '0 0 0 1px var(--accent) inset' : 'none',
+                            }}
+                          >
+                            <div className="font-display font-semibold text-1">{o.title}</div>
+                            <div className="text-2 text-sm mt-1">{o.sub}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!data.customer_type && (
+                      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut mt-2">
+                        Bitte wählen Sie einen Kundentyp / Please select a customer type to continue.
+                      </p>
+                    )}
+                  </div>
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <FieldLabel>Your name</FieldLabel>
@@ -854,6 +945,22 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowContractPreview(true);
+                        trackEvent('Contract Preview Opened', { tier: data.tier });
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full border accent font-mono text-[11px] font-semibold uppercase tracking-[0.2em] transition hover:opacity-80"
+                      style={{ borderColor: 'color-mix(in oklab, var(--accent) 50%, transparent)' }}
+                    >
+                      <Icon.ArrowUpRight className="w-3.5 h-3.5" />
+                      Preview Service Agreement
+                    </button>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut">opens in modal</span>
+                  </div>
+
                   <div className="space-y-2.5">
                     <label className="flex items-start gap-3 text-sm text-2 cursor-pointer">
                       <input type="checkbox" checked={data.accept_50} onChange={(e) => set('accept_50', e.target.checked)} className="mt-1 accent-fuchsia-500" />
@@ -862,9 +969,70 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                     <label className="flex items-start gap-3 text-sm text-2 cursor-pointer">
                       <input type="checkbox" checked={data.accept_terms} onChange={(e) => set('accept_terms', e.target.checked)} className="mt-1 accent-fuchsia-500" />
                       <span>
-                        I agree to the Service Agreement and Datenschutz. <a href="#" className="accent underline">Preview contract</a>
+                        {data.customer_type === 'b2b' ? (
+                          <>
+                            Ich bestätige, dass ich die{' '}
+                            <a href="/agb" target="_blank" rel="noopener noreferrer" className="accent underline">
+                              AGB für Unternehmen
+                            </a>{' '}
+                            und den Werkvertrag gelesen habe und ihren Bedingungen zustimme.
+                          </>
+                        ) : data.customer_type === 'b2c' ? (
+                          <>
+                            Ich bestätige, dass ich die{' '}
+                            <a href="/agb-b2c" target="_blank" rel="noopener noreferrer" className="accent underline">
+                              AGB für Verbraucher
+                            </a>
+                            , die{' '}
+                            <a href="/widerrufsbelehrung" target="_blank" rel="noopener noreferrer" className="accent underline">
+                              Widerrufsbelehrung
+                            </a>{' '}
+                            und den Werkvertrag gelesen habe und ihren Bedingungen zustimme.
+                          </>
+                        ) : (
+                          <>Ich bestätige, dass ich die AGB und den Werkvertrag gelesen habe und ihren Bedingungen zustimme.</>
+                        )}
                       </span>
                     </label>
+
+                    {data.customer_type === 'b2c' && (
+                      <label
+                        className="flex items-start gap-3 text-sm text-2 cursor-pointer rounded-lg p-3 border"
+                        style={{
+                          background: 'color-mix(in oklab, var(--gold) 8%, transparent)',
+                          borderColor: 'color-mix(in oklab, var(--gold) 35%, transparent)',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={data.accept_widerruf_waiver}
+                          onChange={(e) => set('accept_widerruf_waiver', e.target.checked)}
+                          className="mt-1 accent-yellow-500"
+                        />
+                        <span>
+                          Ich verlange ausdrücklich, dass Trendiva Lux mit der Ausführung der bestellten Dienstleistung
+                          vor Ablauf der Widerrufsfrist beginnt. Mir ist bekannt, dass ich mein Widerrufsrecht bei
+                          vollständiger Vertragserfüllung durch Trendiva Lux verliere. / I expressly request that
+                          Trendiva Lux begin the execution of the ordered service before the end of the withdrawal
+                          period. I am aware that I lose my right of withdrawal upon full performance of the contract
+                          by Trendiva Lux.
+                        </span>
+                      </label>
+                    )}
+
+                    {(() => {
+                      const missing: string[] = [];
+                      if (!data.customer_type) missing.push('customer type');
+                      if (!data.accept_50) missing.push('deposit acknowledgment');
+                      if (!data.accept_terms) missing.push('terms acknowledgment');
+                      if (data.customer_type === 'b2c' && !data.accept_widerruf_waiver) missing.push('Widerrufsrecht waiver');
+                      if (missing.length === 0) return null;
+                      return (
+                        <p className="font-mono text-[10px] uppercase tracking-[0.22em] gold pt-1">
+                          Please confirm: {missing.join(' · ')}.
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -996,6 +1164,14 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
           accent="var(--accent)"
         />
       )}
+      <ContractPreviewModal
+        isOpen={showContractPreview}
+        onClose={() => setShowContractPreview(false)}
+        tier={data.tier}
+        customerName={data.name}
+        addons={data.addons}
+        hasRush={data.deadline === 'rush'}
+      />
     </div>
   );
 };

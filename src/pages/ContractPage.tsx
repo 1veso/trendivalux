@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import SEO from '../components/SEO';
 
 interface Order {
   id: string;
@@ -75,6 +76,7 @@ export default function ContractPage() {
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center p-8 text-2" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+        <SEO title="Service Agreement" pathname="/contract" noIndex />
         <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-mut">Loading your contract…</div>
       </div>
     );
@@ -127,6 +129,7 @@ export default function ContractPage() {
 
   return (
     <div className="min-h-screen p-6 md:p-8" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+      <SEO title="Service Agreement" pathname="/contract" noIndex />
       <div className="max-w-4xl mx-auto">
         <header className="mb-6">
           <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-mut">// SERVICE AGREEMENT</div>

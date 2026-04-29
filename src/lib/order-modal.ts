@@ -33,6 +33,8 @@ export interface SubmitQuestionnaireInput {
   answers: QuestionnaireAnswers;
   customerEmail: string;
   customerName?: string;
+  customerType: 'b2b' | 'b2c';
+  acceptedWidereufWaiver: boolean;
 }
 
 // The server is authoritative for pricing. It re-derives the deposit and per-line
@@ -55,6 +57,8 @@ export async function submitQuestionnaire(
       answers: input.answers,
       customerEmail: input.customerEmail,
       customerName: input.customerName,
+      customerType: input.customerType,
+      acceptedWidereufWaiver: input.acceptedWidereufWaiver,
     }),
   });
 

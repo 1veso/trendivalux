@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Icon } from './Icons';
 
 export const Footer = ({ theme }: { theme: string }) => {
@@ -60,9 +61,11 @@ export const Footer = ({ theme }: { theme: string }) => {
             <div>
               <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-mut mb-4">Legal</div>
               <ul className="space-y-2.5 text-sm">
-                <li><a href="#" className="text-2 hover:opacity-70 transition">Impressum</a></li>
-                <li><a href="#" className="text-2 hover:opacity-70 transition">Datenschutz</a></li>
-                <li><a href="#" className="text-2 hover:opacity-70 transition">AGB</a></li>
+                <li><Link to="/impressum" className="text-2 hover:opacity-70 transition">Impressum</Link></li>
+                <li><Link to="/datenschutz" className="text-2 hover:opacity-70 transition">Datenschutz</Link></li>
+                <li><Link to="/agb" className="text-2 hover:opacity-70 transition">AGB (B2B)</Link></li>
+                <li><Link to="/agb-b2c" className="text-2 hover:opacity-70 transition">AGB (B2C)</Link></li>
+                <li><Link to="/widerrufsbelehrung" className="text-2 hover:opacity-70 transition">Widerrufsbelehrung</Link></li>
               </ul>
             </div>
             <div>
@@ -119,13 +122,25 @@ export const Footer = ({ theme }: { theme: string }) => {
   );
 };
 
-export const WaitlistModal = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: (email: string) => void }) => {
+export const WaitlistModal = ({
+  open,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (email: string) => Promise<{ success: boolean; error?: string }> | void;
+}) => {
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!open) {
       setEmail('');
       setDone(false);
+      setSubmitting(false);
+      setError(null);
     }
   }, [open]);
   if (!open) return null;
@@ -153,11 +168,24 @@ export const WaitlistModal = ({ open, onClose, onSubmit }: { open: boolean; onCl
               <p className="text-2 text-sm mt-2">No spam. One email when next month's slots go live.</p>
               <form
                 className="mt-5 space-y-3"
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  if (!email) return;
-                  onSubmit(email);
-                  setDone(true);
+                  if (!email || submitting) return;
+                  setError(null);
+                  setSubmitting(true);
+                  try {
+                    const result = await onSubmit(email);
+                    if (result && typeof result === 'object' && result.success === false) {
+                      setError(result.error || 'Something went wrong. Please try again.');
+                      setSubmitting(false);
+                      return;
+                    }
+                    setDone(true);
+                  } catch {
+                    setError('Network error. Please try again.');
+                  } finally {
+                    setSubmitting(false);
+                  }
                 }}
               >
                 <input
@@ -171,11 +199,17 @@ export const WaitlistModal = ({ open, onClose, onSubmit }: { open: boolean; onCl
                 />
                 <button
                   type="submit"
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition"
+                  disabled={submitting}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.22em] transition disabled:opacity-60"
                   style={{ background: 'var(--accent)', color: '#000' }}
                 >
-                  Join Waitlist <Icon.ArrowRight className="w-3.5 h-3.5" />
+                  {submitting ? 'Joining…' : <>Join Waitlist <Icon.ArrowRight className="w-3.5 h-3.5" /></>}
                 </button>
+                {error && (
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-center pt-1" style={{ color: '#ff6b9a' }}>
+                    {error}
+                  </p>
+                )}
               </form>
             </>
           ) : (

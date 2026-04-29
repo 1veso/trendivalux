@@ -235,10 +235,17 @@ export const TopNav = ({
   );
 };
 
-export const Hero = ({ theme }: { theme: string }) => {
+export const Hero = ({ theme, remainingSlots }: { theme: string; remainingSlots?: number | null }) => {
   const y = useScrollY();
   const parallaxOrbs = Math.min(y * 0.12, 120);
   const fade = Math.max(0, 1 - y / 700);
+
+  const slotsText =
+    remainingSlots === null || remainingSlots === undefined
+      ? 'Loading slot availability…'
+      : remainingSlots === 0
+        ? 'Booked out this month — join waitlist'
+        : `${remainingSlots} Slot${remainingSlots === 1 ? '' : 's'} Remaining For This Month`;
 
   const [confirmKey, setConfirmKey] = useState(0);
   const [confirmTarget, setConfirmTarget] = useState<string | null>(null);
@@ -358,7 +365,7 @@ export const Hero = ({ theme }: { theme: string }) => {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--accent-2)' }} />
             <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: 'var(--accent-2)' }} />
           </span>
-          <span>2 Slots Remaining For This Month</span>
+          <span>{slotsText}</span>
         </FadeUp>
 
         <FadeUp delay={2300} className="mt-16 max-w-[720px]">

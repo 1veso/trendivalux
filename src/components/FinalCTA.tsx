@@ -54,7 +54,17 @@ export const FinalCTA = ({ onWaitlist }: { onWaitlist: () => void }) => (
   </section>
 );
 
-export const StickyBar = ({ onReserve }: { onReserve: (id?: string) => void }) => {
+const MONTH_LABEL = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+export const StickyBar = ({
+  onReserve,
+  remainingSlots,
+  onWaitlist,
+}: {
+  onReserve: (id?: string) => void;
+  remainingSlots?: number | null;
+  onWaitlist?: () => void;
+}) => {
   const [show, setShow] = useState(false);
   useEffect(() => {
     const onScroll = () => {
@@ -68,6 +78,15 @@ export const StickyBar = ({ onReserve }: { onReserve: (id?: string) => void }) =
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  const isLoading = remainingSlots === null || remainingSlots === undefined;
+  const isBookedOut = !isLoading && remainingSlots === 0;
+  const labelText = isLoading
+    ? 'Loading availability…'
+    : isBookedOut
+      ? 'Booked out this month'
+      : `${remainingSlots} slot${remainingSlots === 1 ? '' : 's'} remaining`;
+
   return (
     <div className={`fixed inset-x-0 bottom-0 z-40 transition-all duration-500 ${show ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'}`}>
       <div
@@ -84,20 +103,31 @@ export const StickyBar = ({ onReserve }: { onReserve: (id?: string) => void }) =
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--accent-2)' }} />
               <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: 'var(--accent-2)' }} />
             </span>
-            <span className="text-1">2 slots remaining</span>
-            <span className="hidden sm:inline text-mut">— April 2026</span>
+            <span className="text-1">{labelText}</span>
+            <span className="hidden sm:inline text-mut">— {MONTH_LABEL}</span>
           </div>
-          <a
-            href="#offers"
-            onClick={(e) => {
-              e.preventDefault();
-              onReserve?.('landing');
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition cursor-pointer"
-            style={{ background: 'var(--gold)', color: '#000' }}
-          >
-            Reserve Slot <Icon.ArrowRight className="w-3 h-3" />
-          </a>
+          {isBookedOut && onWaitlist ? (
+            <button
+              onClick={onWaitlist}
+              type="button"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition cursor-pointer"
+              style={{ background: 'var(--accent)', color: '#000' }}
+            >
+              Join Waitlist <Icon.ArrowRight className="w-3 h-3" />
+            </button>
+          ) : (
+            <a
+              href="#offers"
+              onClick={(e) => {
+                e.preventDefault();
+                onReserve?.('landing');
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition cursor-pointer"
+              style={{ background: 'var(--gold)', color: '#000' }}
+            >
+              Reserve Slot <Icon.ArrowRight className="w-3 h-3" />
+            </a>
+          )}
         </div>
       </div>
     </div>
