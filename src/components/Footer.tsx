@@ -132,12 +132,14 @@ export const WaitlistModal = ({
   onSubmit: (email: string) => Promise<{ success: boolean; error?: string }> | void;
 }) => {
   const [email, setEmail] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!open) {
       setEmail('');
+      setHoneypot('');
       setDone(false);
       setSubmitting(false);
       setError(null);
@@ -179,6 +181,12 @@ export const WaitlistModal = ({
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!email || submitting) return;
+                  // Honeypot: if a bot filled the hidden field, fake success.
+                  if (honeypot) {
+                    console.log('[honeypot] waitlist submission rejected');
+                    setDone(true);
+                    return;
+                  }
                   setError(null);
                   setSubmitting(true);
                   try {
@@ -196,6 +204,17 @@ export const WaitlistModal = ({
                   }
                 }}
               >
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  aria-hidden="true"
+                  className="absolute left-[-9999px] opacity-0 pointer-events-none"
+                  style={{ position: 'absolute', left: '-9999px' }}
+                />
                 <input
                   type="email"
                   required

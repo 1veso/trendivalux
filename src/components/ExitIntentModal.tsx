@@ -9,6 +9,7 @@ interface ExitIntentModalProps {
 
 export const ExitIntentModal = ({ open, onClose, onSubmit }: ExitIntentModalProps) => {
   const [email, setEmail] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,6 +17,7 @@ export const ExitIntentModal = ({ open, onClose, onSubmit }: ExitIntentModalProp
   useEffect(() => {
     if (!open) {
       setEmail('');
+      setHoneypot('');
       setDone(false);
       setError(null);
       setSubmitting(false);
@@ -82,6 +84,12 @@ export const ExitIntentModal = ({ open, onClose, onSubmit }: ExitIntentModalProp
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!email || submitting) return;
+                  // Honeypot: if a bot filled the hidden field, fake success.
+                  if (honeypot) {
+                    console.log('[honeypot] exit-intent submission rejected');
+                    setDone(true);
+                    return;
+                  }
                   setError(null);
                   setSubmitting(true);
                   try {
@@ -99,6 +107,17 @@ export const ExitIntentModal = ({ open, onClose, onSubmit }: ExitIntentModalProp
                   }
                 }}
               >
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  aria-hidden="true"
+                  className="absolute left-[-9999px] opacity-0 pointer-events-none"
+                  style={{ position: 'absolute', left: '-9999px' }}
+                />
                 <input
                   type="email"
                   required
