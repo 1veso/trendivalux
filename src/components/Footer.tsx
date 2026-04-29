@@ -141,7 +141,13 @@ export const WaitlistModal = ({
       setDone(false);
       setSubmitting(false);
       setError(null);
+      return;
     }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
   }, [open]);
   if (!open) return null;
   return (
@@ -253,7 +259,13 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
       setMessage('');
       setDone(false);
       setSubmitting(false);
+      return;
     }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
   }, [open]);
 
   if (!open) return null;

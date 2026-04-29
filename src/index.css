@@ -46,7 +46,36 @@
 }
 
 html, body { background: var(--bg); color: var(--text); }
-body { font-family: 'Familjen Grotesk', system-ui, sans-serif; -webkit-font-smoothing: antialiased; transition: background 800ms ease, color 800ms ease; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+body {
+  font-family: 'Familjen Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background 800ms ease, color 800ms ease;
+  overflow-x: hidden;
+}
+button, a, [role="button"], label {
+  -webkit-tap-highlight-color: transparent;
+}
+img.logo, .no-callout {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
 *::selection { background: color-mix(in oklab, var(--accent) 35%, transparent); color: var(--text); }
 
 /* Display: Syne — sculpted, off-axis geometry. Reads "art-direction" not "AI default". */
