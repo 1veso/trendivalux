@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Icon } from './Icons';
 import {
   bookStrategyCall,
@@ -15,8 +15,9 @@ import {
   TIER_BASE_EUR,
   TIER_NAMES,
 } from '../config/pricing';
-import ContractPreviewModal from './ContractPreviewModal';
 import { trackEvent } from '../lib/analytics';
+
+const ContractPreviewModal = lazy(() => import('./ContractPreviewModal'));
 
 // Display-shape constants for the OrderModal. Prices come from src/config/pricing.ts
 // (single source of truth shared with the server). Local fields like timeline/days
@@ -1164,14 +1165,18 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
           accent="var(--accent)"
         />
       )}
-      <ContractPreviewModal
-        isOpen={showContractPreview}
-        onClose={() => setShowContractPreview(false)}
-        tier={data.tier}
-        customerName={data.name}
-        addons={data.addons}
-        hasRush={data.deadline === 'rush'}
-      />
+      {showContractPreview && (
+        <Suspense fallback={null}>
+          <ContractPreviewModal
+            isOpen={showContractPreview}
+            onClose={() => setShowContractPreview(false)}
+            tier={data.tier}
+            customerName={data.name}
+            addons={data.addons}
+            hasRush={data.deadline === 'rush'}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

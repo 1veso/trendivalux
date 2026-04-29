@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { TopNav, Hero } from './Hero';
 import { Builds } from './Builds';
 import { Offers } from './Offers';
@@ -8,9 +8,10 @@ import { Risk } from './Risk';
 import { FAQ } from './FAQ';
 import { FinalCTA, StickyBar } from './FinalCTA';
 import { Footer, WaitlistModal, ContactModal } from './Footer';
-import { OrderModal } from './OrderModal';
 import { ExitIntentModal } from './ExitIntentModal';
 import { CookieBanner } from './CookieBanner';
+
+const OrderModal = lazy(() => import('./OrderModal').then((m) => ({ default: m.OrderModal })));
 import { bookStrategyCall } from '../lib/order-modal';
 import { captureWaitlistEmail, captureSiteAuditLead } from '../lib/email-capture';
 import { useExitIntent } from '../hooks/useExitIntent';
@@ -160,7 +161,11 @@ export default function TrendivaLuxLanding() {
       <Footer theme={theme} />
       <StickyBar onReserve={openOrder} remainingSlots={remainingSlots} onWaitlist={() => setWaitlistOpen(true)} />
       <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} onSubmit={handleWaitlistSignup} />
-      <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} initialTier={orderTier} />
+      {orderOpen && (
+        <Suspense fallback={null}>
+          <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} initialTier={orderTier} />
+        </Suspense>
+      )}
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
       <ExitIntentModal
         open={showExitIntent}

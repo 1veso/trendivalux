@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icons';
 import { Orbs, DigitalSunset } from '../components/Atmosphere';
 import { TopNav, FadeUp } from '../components/Hero';
 import { Footer, ContactModal } from '../components/Footer';
-import { OrderModal } from '../components/OrderModal';
 import type { TierConfig, TierSlug } from '../lib/tier-configs';
+
+const OrderModal = lazy(() =>
+  import('../components/OrderModal').then((m) => ({ default: m.OrderModal })),
+);
 
 const Reveal = ({ children, delay = 0 }: { children: any; delay?: number }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -773,7 +776,11 @@ export const TierPage = ({ config }: { config: TierConfig }) => {
       <TierFAQ config={config} />
       <TierFinalCTA config={config} />
       <Footer theme={theme} />
-      <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} initialTier={orderTier} />
+      {orderOpen && (
+        <Suspense fallback={null}>
+          <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} initialTier={orderTier} />
+        </Suspense>
+      )}
       <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </div>
   );
