@@ -32,3 +32,7 @@ dist-ssr
 
 # Staging area for design artifacts (transient)
 /staging/
+
+# Lighthouse audit artifacts (run locally, not committed)
+lighthouse-baseline.report.*
+lighthouse-final.report.*
