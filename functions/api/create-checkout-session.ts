@@ -2,6 +2,7 @@ import type { PagesFunction } from '@cloudflare/workers-types';
 import { createStripeClient } from '../_shared/stripe-client';
 import { createAdminClient } from '../_shared/supabase-admin';
 import { computeDepositLineItems, isServerTier, type ServerTierId } from '../../src/config/pricing';
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '../_shared/rate-limit';
 import type { Env } from '../_shared/env';
 
 interface CheckoutRequest {
@@ -15,6 +16,16 @@ interface CheckoutRequest {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  const rateLimit = await checkRateLimit({
+    identifier: getClientIdentifier(request),
+    endpoint: 'create-checkout-session',
+    maxRequests: 5,
+    windowSeconds: 60,
+  });
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.retryAfter ?? 60);
+  }
+
   try {
     const body = (await request.json()) as CheckoutRequest;
     const { sessionId, tier, answers, customerEmail, customerName, customerType, acceptedWidereufWaiver } = body;

@@ -1,6 +1,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types';
 import { createAdminClient } from '../_shared/supabase-admin';
 import { verifySignWellWebhook } from '../_shared/signwell';
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '../_shared/rate-limit';
 import type { Env } from '../_shared/env';
 
 // SignWell webhook. Receives document lifecycle events. On document_completed
@@ -27,6 +28,16 @@ interface SignWellWebhookBody {
 const COMPLETED_EVENTS = new Set(['document_completed', 'document_signed', 'completed']);
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  const rateLimit = await checkRateLimit({
+    identifier: getClientIdentifier(request),
+    endpoint: 'signwell-webhook',
+    maxRequests: 60,
+    windowSeconds: 60,
+  });
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.retryAfter ?? 60);
+  }
+
   const rawBody = await request.text();
 
   const signature =

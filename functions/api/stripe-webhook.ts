@@ -9,6 +9,7 @@ import {
   sendFounderKickoff,
 } from '../_shared/email';
 import { createSignWellSubmission } from '../_shared/signwell';
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '../_shared/rate-limit';
 import type { Env } from '../_shared/env';
 
 const TIER_LABELS: Record<string, string> = {
@@ -33,6 +34,16 @@ interface OrderRow {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  const rateLimit = await checkRateLimit({
+    identifier: getClientIdentifier(request),
+    endpoint: 'stripe-webhook',
+    maxRequests: 60,
+    windowSeconds: 60,
+  });
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.retryAfter ?? 60);
+  }
+
   const stripe = createStripeClient(env.STRIPE_SECRET_KEY);
   const supabase = createAdminClient(env);
 
