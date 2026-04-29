@@ -71,8 +71,8 @@ const markdownComponents = {
         href={href}
         target={isExternal ? '_blank' : undefined}
         rel={isExternal ? 'noopener noreferrer' : undefined}
-        className="accent underline-offset-2 hover:underline transition"
-        style={{ color: 'var(--accent)' }}
+        className="accent underline-offset-2 hover:underline transition break-words"
+        style={{ color: 'var(--accent)', wordBreak: 'break-word' }}
       >
         {children}
       </a>
@@ -155,11 +155,11 @@ export default function LegalPageLayout({
       style={{ background: 'var(--bg)', color: 'var(--text)' }}
     >
       <SEO title={currentTitle} pathname={pathname} noIndex={noIndex} />
-      <div className="max-w-3xl mx-auto px-6 md:px-10 py-16 md:py-24">
-        <div className="flex items-center justify-between gap-4 mb-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 md:px-10 py-10 sm:py-16 md:py-24">
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Link
             to="/"
-            className="font-mono text-[10px] uppercase tracking-[0.28em] text-mut hover:opacity-70 transition"
+            className="inline-flex items-center min-h-[44px] font-mono text-[10px] uppercase tracking-[0.24em] sm:tracking-[0.28em] text-mut hover:opacity-70 transition"
           >
             {backLabel}
           </Link>
@@ -183,7 +183,7 @@ export default function LegalPageLayout({
                     role="tab"
                     aria-selected={active}
                     onClick={() => setLang(l)}
-                    className="px-3.5 py-1.5 rounded-full font-mono text-[10px] uppercase tracking-[0.22em] transition"
+                    className="inline-flex items-center justify-center min-h-[36px] px-3.5 py-1.5 rounded-full font-mono text-[10px] uppercase tracking-[0.22em] transition"
                     style={{
                       background: active
                         ? 'color-mix(in oklab, var(--accent) 18%, transparent)'
@@ -200,16 +200,16 @@ export default function LegalPageLayout({
           )}
         </div>
 
-        <header className="mb-10">
+        <header className="mb-8 sm:mb-10">
           <p className="font-mono text-[10px] uppercase tracking-[0.28em] accent-2">
             // LEGAL
           </p>
-          <h1 className="font-display font-bold text-4xl md:text-5xl tracking-tight mt-2">
+          <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl tracking-tight mt-2 break-words">
             {currentTitle}
           </h1>
         </header>
 
-        <article className="legal-content">
+        <article className="legal-content break-words">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
             {currentContent}
           </ReactMarkdown>
