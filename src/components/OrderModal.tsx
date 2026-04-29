@@ -548,14 +548,16 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
         />
       </div>
 
-      <div className="relative h-full grid place-items-center p-4 md:p-8 overflow-auto">
+      <div className="relative h-full flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-8">
         <div
-          className="relative w-full max-w-[920px] my-auto rounded-2xl border bd overflow-hidden"
+          className="relative w-full sm:max-w-[920px] rounded-t-2xl sm:rounded-2xl border bd overflow-hidden flex flex-col max-h-[100svh] sm:max-h-[92vh] h-[100svh] sm:h-auto"
           style={{
             background: 'var(--surface)',
             boxShadow:
               '0 50px 120px -30px color-mix(in oklab, var(--accent-2) 28%, transparent), 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent) inset',
             animation: submitted ? 'none' : 'modal-in 480ms cubic-bezier(.2,.7,.1,1) both',
+            overscrollBehavior: 'contain',
+            paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
           <style>{`
@@ -564,20 +566,20 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
             @keyframes step-in-l { from { transform: translateX(-28px); opacity:0 } to { transform: translateX(0); opacity:1 } }
           `}</style>
 
-          <div className="sticky top-0 z-10 px-6 md:px-8 pt-5 pb-4 border-b bd backdrop-blur-md" style={{ background: 'color-mix(in oklab, var(--surface) 85%, transparent)' }}>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.28em] accent">
-                  // ORDER · STEP {String(step + 1).padStart(2, '0')} / {STEPS.length}
+          <div className="shrink-0 px-5 sm:px-6 md:px-8 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b bd backdrop-blur-md" style={{ background: 'color-mix(in oklab, var(--surface) 85%, transparent)' }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.24em] sm:tracking-[0.28em] accent">
+                  // STEP {String(step + 1).padStart(2, '0')} / {STEPS.length}
                 </div>
-                <h3 className="font-display font-bold text-2xl md:text-[28px] tracking-tight mt-1.5 text-1">{stepDef.title}</h3>
-                <p className="text-2 text-sm mt-1">{stepDef.sub}</p>
+                <h3 className="font-display font-bold text-xl sm:text-2xl md:text-[28px] tracking-tight mt-1.5 text-1">{stepDef.title}</h3>
+                <p className="text-2 text-xs sm:text-sm mt-1">{stepDef.sub}</p>
               </div>
-              <button onClick={onClose} className="shrink-0 grid place-items-center w-9 h-9 rounded-full border bd hover:opacity-70 transition" aria-label="Close">
+              <button onClick={onClose} className="shrink-0 grid place-items-center w-11 h-11 rounded-full border bd hover:opacity-70 transition" aria-label="Close">
                 <Icon.Close className="w-4 h-4 text-2" />
               </button>
             </div>
-            <div className="mt-4 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+            <div className="mt-3 sm:mt-4 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
               <div
                 className="h-full transition-[width] duration-500"
                 style={{
@@ -589,8 +591,10 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
             </div>
           </div>
 
+          <div className="flex-1 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
+
           {!submitted && (
-            <div key={step} className="px-6 md:px-8 py-7" style={{ animation: `step-in-${direction === 1 ? 'r' : 'l'} 360ms cubic-bezier(.2,.7,.1,1) both` }}>
+            <div key={step} className="px-5 sm:px-6 md:px-8 py-6 sm:py-7" style={{ animation: `step-in-${direction === 1 ? 'r' : 'l'} 360ms cubic-bezier(.2,.7,.1,1) both` }}>
               {stepDef.id === 'tier' && (
                 <div>
                   <FieldLabel>Tier</FieldLabel>
@@ -1041,7 +1045,7 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
           )}
 
           {submitted && (
-            <div className="px-6 md:px-8 py-12 text-center">
+            <div className="px-5 sm:px-6 md:px-8 py-10 sm:py-12 text-center">
               <div
                 className="inline-grid place-items-center w-16 h-16 rounded-full mb-5"
                 style={{
@@ -1068,16 +1072,17 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
               </button>
             </div>
           )}
+          </div>
 
           {!submitted && (
             <div
-              className="sticky bottom-0 px-6 md:px-8 py-4 border-t bd backdrop-blur-md flex items-center justify-between gap-4"
+              className="shrink-0 px-5 sm:px-6 md:px-8 py-3 sm:py-4 border-t bd backdrop-blur-md flex items-center justify-between gap-3"
               style={{ background: 'color-mix(in oklab, var(--surface) 88%, transparent)' }}
             >
               <button
                 onClick={back}
                 disabled={step === 0}
-                className="font-mono text-[11px] uppercase tracking-[0.22em] text-2 hover:text-1 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center min-h-[44px] px-3 sm:px-4 rounded-full font-mono text-[11px] uppercase tracking-[0.22em] text-2 hover:text-1 transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 ← Back
               </button>
@@ -1096,7 +1101,7 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                 <button
                   onClick={next}
                   disabled={!validateStep()}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 sm:px-5 py-2.5 sm:py-3 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ background: 'var(--accent)', color: '#000' }}
                 >
                   Continue <Icon.ArrowRight className="w-3.5 h-3.5" />
@@ -1106,7 +1111,7 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                   <button
                     onClick={submit}
                     disabled={!validateStep() || submitting}
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition disabled:opacity-40 disabled:cursor-not-allowed gold-pulse"
+                    className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 sm:px-5 py-2.5 sm:py-3 rounded-full font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.18em] sm:tracking-[0.2em] transition disabled:opacity-40 disabled:cursor-not-allowed gold-pulse"
                     style={{ background: 'var(--gold)', color: '#000' }}
                   >
                     {submitting
