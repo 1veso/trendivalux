@@ -42,7 +42,7 @@ const VALID_CATEGORIES = new Set<string>(['brand', 'reference', 'content', 'othe
 
 // Allowed file extensions (primary gate — mime from data: URI is advisory)
 const ALLOWED_EXTENSIONS = new Set([
-  'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg',
+  'png', 'jpg', 'jpeg', 'webp', 'gif',
   'pdf',
   'doc', 'docx',
   'ppt', 'pptx',
@@ -58,7 +58,6 @@ const EXT_CONTENT_TYPE: Record<string, string> = {
   jpeg: 'image/jpeg',
   webp: 'image/webp',
   gif: 'image/gif',
-  svg: 'image/svg+xml',
   pdf: 'application/pdf',
   doc: 'application/msword',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
