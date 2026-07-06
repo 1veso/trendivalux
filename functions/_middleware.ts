@@ -3,7 +3,11 @@ import type { PagesFunction } from '@cloudflare/workers-types';
 // Applies security headers to every response served by Cloudflare Pages,
 // including static assets. CSP is the load-bearing piece — it locks scripts,
 // frames, and outbound connections to the third parties we actually use:
-// Stripe, SignWell, Plausible, Cal.com, Supabase, Sentry, Google Fonts.
+// Stripe, DocuSeal, Plausible, Cal.com, Supabase, Sentry, Google Fonts.
+//
+// NOTE: DocuSeal is self-hosted at a custom domain (DOCUSEAL_API_URL env var).
+// Add that domain to frame-src once the instance URL is known, e.g.:
+//   "frame-src ... https://sign.yourdomain.com"
 
 const CSP = [
   "default-src 'self'",
@@ -11,8 +15,8 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: https: blob:",
-  "frame-src https://checkout.stripe.com https://js.stripe.com https://www.signwell.com https://app.cal.com",
-  "connect-src 'self' https://api.stripe.com https://www.signwell.com https://*.supabase.co https://plausible.io https://api.cal.com https://*.sentry.io https://*.ingest.sentry.io",
+  "frame-src https://checkout.stripe.com https://js.stripe.com https://app.cal.com",
+  "connect-src 'self' https://api.stripe.com https://*.supabase.co https://plausible.io https://api.cal.com https://*.sentry.io https://*.ingest.sentry.io",
   "media-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",

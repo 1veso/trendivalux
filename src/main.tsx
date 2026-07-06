@@ -49,8 +49,8 @@ function ErrorFallback() {
   );
 }
 
-const ContractPage = lazy(() => import('./pages/ContractPage'));
 const SuccessPage = lazy(() => import('./pages/SuccessPage'));
+const PostPaymentScoping = lazy(() => import('./pages/PostPaymentScoping'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
 const DatenschutzPage = lazy(() => import('./pages/DatenschutzPage'));
 const AGBPage = lazy(() => import('./pages/AGBPage'));
@@ -78,13 +78,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="/" element={<TrendivaLuxLanding />} />
             <Route path="/tiers/:slug" element={<TierRoute />} />
-            <Route path="/contract/:orderId" element={withSkeleton(<ContractPage />)} />
             <Route path="/success" element={withSkeleton(<SuccessPage />)} />
             <Route path="/impressum" element={withSkeleton(<ImpressumPage />)} />
             <Route path="/datenschutz" element={withSkeleton(<DatenschutzPage />)} />
             <Route path="/agb" element={withSkeleton(<AGBPage />)} />
             <Route path="/agb-b2c" element={withSkeleton(<AGBB2CPage />)} />
             <Route path="/widerrufsbelehrung" element={withSkeleton(<WiderrufsbelehrungPage />)} />
+            <Route path="/scoping/:orderId" element={withSkeleton(<PostPaymentScoping />)} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

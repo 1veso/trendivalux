@@ -172,6 +172,51 @@ export async function sendFounderAlert(
   });
 }
 
+export interface ScopingInviteEmailParams {
+  to: string;
+  customerName: string | null;
+  tier: string;
+  scopingUrl: string;
+  orderId: string;
+}
+
+export async function sendScopingInvite(
+  apiKey: string,
+  params: ScopingInviteEmailParams,
+): Promise<void> {
+  const resend = new Resend(apiKey);
+  const greeting = params.customerName ? `Hi ${escapeHtml(params.customerName)},` : 'Hi,';
+  await resend.emails.send({
+    from: 'TrendivaLux <hello@trendivalux.com>',
+    to: params.to,
+    subject: `Your TrendivaLux ${params.tier} project — tell us the details`,
+    html: `<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#0A0A0F;">
+    <div style="font-family:Inter,system-ui,-apple-system,sans-serif;max-width:640px;margin:0 auto;background:#0A0A0F;color:#FFFFFF;padding:40px 32px;">
+      <h1 style="color:#00E5D4;font-size:28px;line-height:1.2;margin:0 0 16px;">Contract signed. Let's build.</h1>
+      <p style="font-size:16px;line-height:1.55;color:#E0E0E8;margin:0 0 12px;">${greeting}</p>
+      <p style="font-size:16px;line-height:1.55;color:#E0E0E8;margin:0 0 24px;">
+        Your <strong style="color:#FFFFFF;">${escapeHtml(params.tier)}</strong> project is officially underway. The contract is signed and the deposit is confirmed.
+        The next step: complete your project brief so we can start building — business details, design direction, pages, integrations, brand assets and timeline.
+      </p>
+      <p style="font-size:14px;line-height:1.55;color:#A0A0B8;margin:0 0 28px;">
+        Order reference: <span style="font-family:'JetBrains Mono',ui-monospace,monospace;color:#00E5D4;">${escapeHtml(params.orderId.slice(0, 8))}</span>
+      </p>
+      <a href="${escapeAttr(params.scopingUrl)}" style="display:inline-block;background:#FF0080;color:#FFFFFF;font-weight:700;font-size:15px;padding:14px 28px;border-radius:8px;text-decoration:none;letter-spacing:0.02em;margin-bottom:32px;">Complete your project brief →</a>
+      <p style="font-size:14px;line-height:1.55;color:#A0A0B8;margin:28px 0 8px;">
+        Questions? Reply to this email and we'll sort it out.
+      </p>
+      <hr style="border:0;border-top:1px solid #1F1F2E;margin:32px 0;" />
+      <p style="font-size:12px;color:#5C5C7A;line-height:1.4;margin:0;">
+        TrendivaLux. Built in Düren. Deployed globally.
+      </p>
+    </div>
+  </body>
+</html>`,
+  });
+}
+
 function escapeHtml(input: string): string {
   return input
     .replace(/&/g, '&amp;')
