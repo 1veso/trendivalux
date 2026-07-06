@@ -154,6 +154,47 @@ function SectionHeading({ children }: { children: ReactNode }) {
   );
 }
 
+// ── File upload helpers ───────────────────────────────────────────────────────
+
+// Client-side per-file cap — matches the server-side limit in save-scoping.ts
+const CLIENT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+const BRAND_ACCEPT = 'image/*,.pdf,.svg';
+const REFERENCE_ACCEPT = 'image/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.csv,.zip';
+
+// Inline file list with per-file size display and remove button
+function AttachmentList({
+  files,
+  onRemove,
+}: {
+  files: File[];
+  onRemove: (index: number) => void;
+}) {
+  if (files.length === 0) return null;
+  return (
+    <ul className="flex flex-col gap-1 mt-2">
+      {files.map((f, i) => (
+        <li
+          key={i}
+          className="flex items-center gap-2 text-xs font-mono"
+          style={{ color: 'var(--text-2)' }}
+        >
+          <span className="truncate flex-1">{f.name}</span>
+          <span className="shrink-0 opacity-60">{formatFileSize(f.size)}</span>
+          <button
+            type="button"
+            onClick={() => onRemove(i)}
+            className="shrink-0 text-[10px] px-1.5 py-0.5 rounded border transition-colors"
+            style={{ color: 'var(--accent-2)', borderColor: 'var(--accent-2)' }}
+            aria-label={`Remove ${f.name}`}
+          >
+            ✕
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // ── Shared input styles ───────────────────────────────────────────────────────
 
 const inputClass =
@@ -249,7 +290,8 @@ interface ScopingForm {
   integrations: string[];
   contentStatus: string;
   language: string;
-  logoFile: File | null;
+  brandFiles: File[];
+  referenceFiles: File[];
   colors: string;
   fonts: string;
   references: string;
@@ -275,7 +317,8 @@ const INITIAL_FORM: ScopingForm = {
   integrations: [],
   contentStatus: '',
   language: '',
-  logoFile: null,
+  brandFiles: [],
+  referenceFiles: [],
   colors: '',
   fonts: '',
   references: '',
@@ -303,7 +346,12 @@ export default function PostPaymentScoping() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const logoInputRef = useRef<HTMLInputElement>(null);
+  const brandFilesRef = useRef<HTMLInputElement>(null);
+  const refFilesRef = useRef<HTMLInputElement>(null);
+  const [fileWarnings, setFileWarnings] = useState<{ brand: string[]; reference: string[] }>({
+    brand: [],
+    reference: [],
+  });
 
   // Check whether this orderId is ready and not yet submitted
   useEffect(() => {
@@ -342,19 +390,59 @@ export default function PostPaymentScoping() {
     return Object.keys(next).length === 0;
   }
 
+  function handleFileAdd(fileList: FileList | null, category: 'brand' | 'reference') {
+    if (!fileList) return;
+    const incoming = Array.from(fileList);
+    const warnings: string[] = [];
+    const valid: File[] = [];
+    for (const file of incoming) {
+      if (file.size > CLIENT_MAX_FILE_BYTES) {
+        warnings.push(`"${file.name}" exceeds 10 MB and was not added.`);
+      } else {
+        valid.push(file);
+      }
+    }
+    if (category === 'brand') {
+      setForm(prev => ({ ...prev, brandFiles: [...prev.brandFiles, ...valid] }));
+      setFileWarnings(prev => ({ ...prev, brand: warnings }));
+      if (brandFilesRef.current) brandFilesRef.current.value = '';
+    } else {
+      setForm(prev => ({ ...prev, referenceFiles: [...prev.referenceFiles, ...valid] }));
+      setFileWarnings(prev => ({ ...prev, reference: warnings }));
+      if (refFilesRef.current) refFilesRef.current.value = '';
+    }
+  }
+
+  function removeFile(category: 'brand' | 'reference', index: number) {
+    if (category === 'brand') {
+      setForm(prev => ({ ...prev, brandFiles: prev.brandFiles.filter((_, i) => i !== index) }));
+    } else {
+      setForm(prev => ({
+        ...prev,
+        referenceFiles: prev.referenceFiles.filter((_, i) => i !== index),
+      }));
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
     setSubmitError(null);
 
-    let logoPayload: { filename: string; dataBase64: string } | undefined;
-    if (form.logoFile) {
+    // Read all selected files to base64 — each is non-fatal; skip on error
+    const attachments: Array<{ filename: string; dataBase64: string; category: string }> = [];
+    for (const file of form.brandFiles) {
       try {
-        logoPayload = await fileToPayload(form.logoFile);
-      } catch {
-        // Non-fatal — continue without logo
-      }
+        const p = await fileToPayload(file);
+        attachments.push({ ...p, category: 'brand' });
+      } catch { /* skip */ }
+    }
+    for (const file of form.referenceFiles) {
+      try {
+        const p = await fileToPayload(file);
+        attachments.push({ ...p, category: 'reference' });
+      } catch { /* skip */ }
     }
 
     const scoping = {
@@ -405,7 +493,7 @@ export default function PostPaymentScoping() {
       const res = await fetch('/api/save-scoping', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, scoping, logo: logoPayload }),
+        body: JSON.stringify({ orderId, scoping, attachments }),
       });
       if (res.ok) {
         setPageState('success');
@@ -699,55 +787,43 @@ export default function PostPaymentScoping() {
           {/* ── Brand assets ──────────────────────────────────────────────── */}
           <SectionHeading>Brand Assets</SectionHeading>
 
-          <Field label="Logo" hint="PNG, JPG, SVG or WebP — max 2 MB.">
-            <div className="flex items-center gap-3 mt-1">
-              <button
-                type="button"
-                onClick={() => logoInputRef.current?.click()}
-                className="px-4 py-2 rounded-lg border text-xs font-mono uppercase tracking-[0.14em] transition-colors"
-                style={{
-                  borderColor: 'var(--border)',
-                  color: 'var(--text-2)',
-                  background: 'var(--surface)',
-                }}
-              >
-                {form.logoFile ? 'Change logo' : 'Upload logo'}
-              </button>
-              {form.logoFile && (
-                <span
-                  className="text-xs font-mono truncate max-w-[180px]"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  {form.logoFile.name}
-                </span>
-              )}
-            </div>
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files ? e.target.files[0] ?? null : null;
-                if (file && file.size > 2 * 1024 * 1024) {
-                  setErrors(prev => ({
-                    ...prev,
-                    logoFile: 'Logo must be under 2 MB.',
-                  }));
-                  return;
-                }
-                set('logoFile')(file);
-                setErrors(prev => ({ ...prev, logoFile: undefined }));
-              }}
-            />
-            {errors.logoFile && (
-              <p
-                className="text-[11px] mt-1"
-                style={{ color: 'var(--accent-2)' }}
-              >
-                {errors.logoFile}
-              </p>
+          <Field
+            label="Logo &amp; brand files"
+            hint="Upload your logo and any other brand files (images, PDF). Max 10 MB per file."
+          >
+            {fileWarnings.brand.length > 0 && (
+              <ul className="flex flex-col gap-0.5 mb-2">
+                {fileWarnings.brand.map((w, i) => (
+                  <li key={i} className="text-[11px]" style={{ color: 'var(--accent-2)' }}>
+                    {w}
+                  </li>
+                ))}
+              </ul>
             )}
+            <button
+              type="button"
+              onClick={() => brandFilesRef.current?.click()}
+              className="px-4 py-2 rounded-lg border text-xs font-mono uppercase tracking-[0.14em] transition-colors"
+              style={{
+                borderColor: 'var(--border)',
+                color: 'var(--text-2)',
+                background: 'var(--surface)',
+              }}
+            >
+              Add brand files
+            </button>
+            <input
+              ref={brandFilesRef}
+              type="file"
+              accept={BRAND_ACCEPT}
+              multiple
+              className="hidden"
+              onChange={e => handleFileAdd(e.target.files, 'brand')}
+            />
+            <AttachmentList
+              files={form.brandFiles}
+              onRemove={i => removeFile('brand', i)}
+            />
           </Field>
 
           <Field label="Brand colors" hint="Hex codes, one per line or comma-separated.">
@@ -786,6 +862,45 @@ export default function PostPaymentScoping() {
               value={form.references}
               onChange={e => set('references')(e.target.value)}
               maxLength={2000}
+            />
+          </Field>
+
+          <Field
+            label="Reference files"
+            hint="Moodboards, screenshots, PDFs, decks — anything that shows what you like. Max 10 MB per file."
+          >
+            {fileWarnings.reference.length > 0 && (
+              <ul className="flex flex-col gap-0.5 mb-2">
+                {fileWarnings.reference.map((w, i) => (
+                  <li key={i} className="text-[11px]" style={{ color: 'var(--accent-2)' }}>
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              type="button"
+              onClick={() => refFilesRef.current?.click()}
+              className="px-4 py-2 rounded-lg border text-xs font-mono uppercase tracking-[0.14em] transition-colors"
+              style={{
+                borderColor: 'var(--border)',
+                color: 'var(--text-2)',
+                background: 'var(--surface)',
+              }}
+            >
+              Add reference files
+            </button>
+            <input
+              ref={refFilesRef}
+              type="file"
+              accept={REFERENCE_ACCEPT}
+              multiple
+              className="hidden"
+              onChange={e => handleFileAdd(e.target.files, 'reference')}
+            />
+            <AttachmentList
+              files={form.referenceFiles}
+              onRemove={i => removeFile('reference', i)}
             />
           </Field>
 
@@ -939,6 +1054,12 @@ export default function PostPaymentScoping() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function fileToPayload(
   file: File,
