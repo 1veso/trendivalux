@@ -51,6 +51,7 @@ function ErrorFallback() {
 
 const ContractPage = lazy(() => import('./pages/ContractPage'));
 const SuccessPage = lazy(() => import('./pages/SuccessPage'));
+const PostPaymentScoping = lazy(() => import('./pages/PostPaymentScoping'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
 const DatenschutzPage = lazy(() => import('./pages/DatenschutzPage'));
 const AGBPage = lazy(() => import('./pages/AGBPage'));
@@ -85,6 +86,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/agb" element={withSkeleton(<AGBPage />)} />
             <Route path="/agb-b2c" element={withSkeleton(<AGBB2CPage />)} />
             <Route path="/widerrufsbelehrung" element={withSkeleton(<WiderrufsbelehrungPage />)} />
+            <Route path="/scoping/:orderId" element={withSkeleton(<PostPaymentScoping />)} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
