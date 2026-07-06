@@ -49,7 +49,6 @@ function ErrorFallback() {
   );
 }
 
-const ContractPage = lazy(() => import('./pages/ContractPage'));
 const SuccessPage = lazy(() => import('./pages/SuccessPage'));
 const PostPaymentScoping = lazy(() => import('./pages/PostPaymentScoping'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
@@ -79,7 +78,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="/" element={<TrendivaLuxLanding />} />
             <Route path="/tiers/:slug" element={<TierRoute />} />
-            <Route path="/contract/:orderId" element={withSkeleton(<ContractPage />)} />
             <Route path="/success" element={withSkeleton(<SuccessPage />)} />
             <Route path="/impressum" element={withSkeleton(<ImpressumPage />)} />
             <Route path="/datenschutz" element={withSkeleton(<DatenschutzPage />)} />
