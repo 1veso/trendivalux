@@ -3,8 +3,28 @@ import { supabase } from './supabase';
 export type QuestionnaireAnswers = Record<string, unknown>;
 export type ServerTier = 'landing' | 'business' | 'store' | 'webapp';
 
+const SESSION_KEY = 'tl_order_session_id';
+
 export function getOrCreateSessionId(): string {
-  return crypto.randomUUID();
+  try {
+    const existing = localStorage.getItem(SESSION_KEY);
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    localStorage.setItem(SESSION_KEY, id);
+    return id;
+  } catch {
+    // localStorage unavailable (SSR, private mode, etc.) — return ephemeral UUID.
+    return crypto.randomUUID();
+  }
+}
+
+/** Remove the persisted session so the next open starts a fresh order row. */
+export function clearSessionId(): void {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // best-effort — SSR / private-mode browsers may not have localStorage
+  }
 }
 
 export async function saveQuestionnaireStep(
@@ -27,48 +47,26 @@ export async function saveQuestionnaireStep(
   }
 }
 
-export interface SubmitQuestionnaireInput {
+export interface StartContractInput {
   sessionId: string;
   tier: ServerTier;
   answers: QuestionnaireAnswers;
   customerEmail: string;
   customerName?: string;
   customerType: 'b2b' | 'b2c';
-  acceptedWidereufWaiver: boolean;
 }
 
-// The server is authoritative for pricing. It re-derives the deposit and per-line
-// breakdown from the answers payload (addons + deadline) using src/config/pricing.ts,
-// so callers do not (and must not) send precomputed totals.
-export async function submitQuestionnaire(
-  input: SubmitQuestionnaireInput,
-): Promise<{ checkoutUrl: string } | { error: string }> {
+/** Phase A stub. Phase B will replace this with a real DocuSeal signing URL. */
+export async function startContractFlow(
+  input: StartContractInput,
+): Promise<{ signingUrl: string } | { error: string }> {
   await supabase
     .from('questionnaires')
     .update({ completed: true, answers: input.answers })
     .eq('session_id', input.sessionId);
 
-  const response = await fetch('/api/create-checkout-session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: input.sessionId,
-      tier: input.tier,
-      answers: input.answers,
-      customerEmail: input.customerEmail,
-      customerName: input.customerName,
-      customerType: input.customerType,
-      acceptedWidereufWaiver: input.acceptedWidereufWaiver,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    return { error: `Failed to create checkout: ${errorBody}` };
-  }
-
-  const { checkoutUrl } = (await response.json()) as { checkoutUrl: string };
-  return { checkoutUrl };
+  // Phase B will replace this stub with a real DocuSeal signing URL.
+  return { error: 'Contract flow not yet wired (Phase B).' };
 }
 
 export function bookStrategyCall(): void {
