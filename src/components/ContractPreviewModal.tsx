@@ -213,8 +213,8 @@ export default function ContractPreviewModal({
 
         <div className="px-5 sm:px-6 md:px-10 py-6 sm:py-7 text-2">
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut text-center mb-6">
-            Vorschau / Preview — der finale Vertrag wird nach Zahlung über SignWell zur digitalen Unterschrift
-            versendet. / The final contract will be sent for digital signature via SignWell after payment.
+            Vorschau / Preview — der finale Vertrag wird zur digitalen Unterschrift über DocuSeal bereitgestellt.
+            / The final contract will be provided for digital signature via DocuSeal.
           </p>
 
           <article className="contract-preview">

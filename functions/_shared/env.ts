@@ -10,9 +10,13 @@ export interface Env {
   STRIPE_PRICE_STORE: string;
   STRIPE_PRICE_WEBAPP: string;
   RESEND_API_KEY: string;
-  SIGNWELL_API_KEY: string;
-  SIGNWELL_TEMPLATE_ID: string;
-  SIGNWELL_WEBHOOK_SECRET: string;
+  DOCUSEAL_API_URL: string;
+  DOCUSEAL_API_KEY: string;
+  DOCUSEAL_WEBHOOK_SECRET: string;
+  DOCUSEAL_TEMPLATE_ID_B2B: string;
+  DOCUSEAL_TEMPLATE_ID_B2C: string;
+  DOCUSEAL_PAYMENT_FIELD_NAME: string;
+  DOCUSEAL_SIGNER_ROLE: string;
   CALCOM_BOOKING_URL: string;
   SITE_URL: string;
   FOUNDER_EMAIL: string;

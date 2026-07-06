@@ -8,7 +8,7 @@ import type { Env } from '../../_shared/env';
 // GDPR Articles 15 (access) and 17 (erasure) endpoint. Records a request and
 // pages the founder. Fulfilment is manual — the founder reviews and within 30
 // days either exports the requester's data or deletes it across the connected
-// services (Supabase, Stripe, SignWell, Resend).
+// services (Supabase, Stripe, DocuSeal, Resend).
 
 interface DataRightsRequestBody {
   email?: unknown;

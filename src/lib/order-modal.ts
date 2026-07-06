@@ -56,7 +56,6 @@ export interface StartContractInput {
   customerType: 'b2b' | 'b2c';
 }
 
-/** Phase A stub. Phase B will replace this with a real DocuSeal signing URL. */
 export async function startContractFlow(
   input: StartContractInput,
 ): Promise<{ signingUrl: string } | { error: string }> {
@@ -65,8 +64,26 @@ export async function startContractFlow(
     .update({ completed: true, answers: input.answers })
     .eq('session_id', input.sessionId);
 
-  // Phase B will replace this stub with a real DocuSeal signing URL.
-  return { error: 'Contract flow not yet wired (Phase B).' };
+  const response = await fetch('/api/create-docuseal-contract', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: input.sessionId,
+      tier: input.tier,
+      customerEmail: input.customerEmail,
+      customerName: input.customerName ?? undefined,
+      customerType: input.customerType,
+    }),
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    return { error: text || `Request failed (${response.status})` };
+  }
+  const data = (await response.json()) as { signingUrl?: string; error?: string };
+  if (data.signingUrl) {
+    return { signingUrl: data.signingUrl };
+  }
+  return { error: data.error || 'No signing URL returned' };
 }
 
 export function bookStrategyCall(): void {
