@@ -7,6 +7,7 @@ import { TIER_CONFIGS } from './lib/tier-configs';
 
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 const OfferReviewPage = lazy(() => import('./pages/OfferReviewPage'));
+const SiteStatusPage = lazy(() => import('./pages/SiteStatusPage'));
 const SuccessPage = lazy(() => import('./pages/SuccessPage'));
 const PostPaymentScoping = lazy(() => import('./pages/PostPaymentScoping'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
@@ -47,6 +48,7 @@ export function AppRoutes() {
             <Route path="/tiers/:slug" element={<TierRoute />} />
             <Route path="/checkout/:orderId" element={withSkeleton(<CheckoutPage />)} />
             <Route path="/offer-review/:orderId" element={withSkeleton(<OfferReviewPage />)} />
+            <Route path="/commissioning" element={withSkeleton(<SiteStatusPage />)} />
             <Route path="/success" element={withSkeleton(<SuccessPage />)} />
             <Route path="/impressum" element={withSkeleton(<ImpressumPage />)} />
             <Route path="/datenschutz" element={withSkeleton(<DatenschutzPage />)} />

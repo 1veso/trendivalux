@@ -3,10 +3,10 @@ import { Icon } from './Icons';
 
 const QA: [string, string][] = [
   ['How fast can you actually deliver?', 'Landing tier in 3 days. Business in 14. Store in 21. Web App in 4 to 6 weeks. We hit these dates because we run lean and use AI-augmented tooling. The deadline is not a marketing claim — it is in your contract.'],
-  ['Who actually builds the site?', 'Jay (founder) leads every project end to end. We use AI agents (Claude Code, R59, R60) as force multipliers, not as replacements. You always work directly with the founder. No account managers, no offshore handoffs.'],
+  ['Who actually builds the site?', 'Primoz (founder) leads every project end to end. We use AI agents (Claude Code, R59, R60) as force multipliers, not as replacements. You always work directly with the founder. No account managers, no offshore handoffs.'],
   ['What if I do not like the design?', 'Two bundled revision rounds are included in LUX; your DELUXE offer defines its agreed rounds. If after revisions we still are not aligned, you cancel and your deposit is refunded. We do not start building until you say go.'],
   ['Do you offer hosting and maintenance?', 'Optional. Cloudflare Pages hosting is free for most projects. Maintenance retainers start at €290 per month for security patches, content updates, and analytics reviews. You can also self-host. Your call.'],
-  ['Is the site mine, or do you keep ownership?', 'Yours. Completely. On launch day you receive the GitHub repo, all credentials, all domain records, all assets. We do not hold ownership over a single byte.'],
+  ['Is the site mine, or do you keep ownership?', 'Your agreement gives you use of the approved published site. After full payment, you receive the final project files, credentials and agreed ownership rights. With four monthly payments, publication can happen before the last rate if all payments due are cleared.'],
   ['What about hosting Germany / GDPR / Datenschutz?', 'Cloudflare offers EU data residency. We provide a GDPR-compliant cookie banner, an Impressum template (per §5 TMG), and Datenschutzerklärung based on IT-Recht Kanzlei templates. We are based in Düren, we know the rules.'],
   ['Can you redesign my existing site instead of building from scratch?', 'Yes. Send us your URL during discovery. If a redesign is better than a rebuild, we will tell you (and quote it accordingly).'],
 ];

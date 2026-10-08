@@ -42,9 +42,9 @@ Required server configuration: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `STR
 
 Stripe webhook events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created`. DocuSeal webhook: `form.completed`, using its timestamped `X-Docuseal-Signature` HMAC. Configure the webhook destinations at `/api/stripe-webhook` and `/api/docuseal-webhook`.
 
-`GET /api/health` checks database access, DocuSeal API connectivity and Stripe live mode plus charge availability. It returns no credentials or customer data. Connectivity does not prove PDF API entitlement, email delivery or configured provider webhook subscriptions; those need a commissioning run. Preview deployments should use their own environment bindings and `SITE_URL`.
+The `/commissioning` operator page displays the read-only readiness check. `GET /api/health` checks database access, DocuSeal API connectivity and Stripe live mode plus charge availability. It returns no credentials or customer data. Connectivity does not prove PDF API entitlement, email delivery or configured provider webhook subscriptions; those need a commissioning run. Preview deployments should use their own environment bindings and `SITE_URL`.
 
-Baseline migrations already applied manually were reconciled with the remote history. Run future changes through tracked migrations. `pnpm test`, `pnpm typecheck` and `pnpm build` validate the flow without contacting providers, sending mail or charging customers.
+Baseline migrations already applied manually were reconciled with the remote history. Both new payment/privacy and private-flow index migrations are applied to production. Run future changes through tracked migrations. `pnpm test`, `pnpm typecheck` and `pnpm build` validate the flow without contacting providers, sending mail or charging customers.
 
 ## Contact
 

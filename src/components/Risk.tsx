@@ -17,7 +17,7 @@ const PILLARS = [
     clause: 'CLAUSE 02',
     tag: 'OWNERSHIP',
     title: 'Full Ownership Transfer',
-    body: 'On launch day you receive every file, every credential, every domain record. You own the site forever. We do not hold your business hostage.',
+    body: 'After full payment you receive the agreed project files, credentials and ownership rights. Publication can proceed once the project is ready and all payments due are cleared.',
     accent: 'var(--accent-2)',
     accentName: 'magenta',
   },

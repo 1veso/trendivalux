@@ -16,9 +16,9 @@ export const FinalCTA = ({ onWaitlist }: { onWaitlist: () => void }) => (
         <span className="h-px w-10" style={{ background: 'color-mix(in oklab, var(--gold) 60%, transparent)' }} />
       </div>
       <h2 className="font-marquee mt-6 text-[clamp(2.4rem,6vw,5rem)] leading-[1.05] uppercase neon-tube-pink">Your next launch starts here</h2>
-      <h3 className="font-script grad-text italic text-[clamp(2rem,5vw,3.6rem)] leading-[1] mt-2">this month.</h3>
+      <h3 className="font-script grad-text italic text-[clamp(2rem,5vw,3.6rem)] leading-[1] mt-2">made for your business.</h3>
       <p className="text-2 text-lg leading-relaxed max-w-[600px] mx-auto mt-7 font-editorial text-[1.18rem]">
-        After that, we open booking for next month. Reserve yours now or join the waitlist — either way, the next reply lands in your inbox within 24 hours.
+        Choose your build and I will guide you through your emailed agreement, payment and project brief. Or join the waitlist for the next available slot.
       </p>
 
       <div className="mt-9 flex flex-wrap items-center justify-center gap-3">

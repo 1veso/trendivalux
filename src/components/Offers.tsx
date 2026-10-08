@@ -235,7 +235,6 @@ export const Offers = ({
         </h2>
         <p className="text-2 mt-5 leading-relaxed font-editorial text-[1.1rem] max-w-[640px]">
           Every package offers <span className="text-1">LUX or DELUXE</span>. Pay in full, 50/50, or four monthly payments. Sign your emailed offer before Stripe checkout.
-          Credited to your final invoice.
         </p>
       </div>
 
