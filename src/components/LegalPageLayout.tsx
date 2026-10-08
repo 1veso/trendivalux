@@ -94,22 +94,12 @@ const markdownComponents = {
       {children}
     </blockquote>
   ),
-  code: ({ inline, children }: any) =>
-    inline ? (
-      <code
-        className="px-1.5 py-0.5 rounded font-mono text-xs"
-        style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}
-      >
-        {children}
-      </code>
-    ) : (
-      <pre
-        className="my-4 p-4 rounded-lg font-mono text-xs overflow-x-auto"
-        style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}
-      >
-        <code>{children}</code>
-      </pre>
-    ),
+  code: ({ children, className }: any) => (
+    <code className={className || 'px-1.5 py-0.5 rounded font-mono text-xs'} style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}>{children}</code>
+  ),
+  pre: ({ children }: any) => (
+    <pre className="my-4 p-4 rounded-lg font-mono text-xs overflow-x-auto" style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}>{children}</pre>
+  ),
   table: ({ children }: any) => (
     <div className="my-5 overflow-x-auto">
       <table className="w-full text-sm border-collapse">{children}</table>

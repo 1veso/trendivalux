@@ -7,7 +7,7 @@ const PILLARS = [
     clause: 'CLAUSE 01',
     tag: 'REFUND',
     title: 'Seven-Day Refund',
-    body: 'If after our discovery questionnaire you decide we are not the right fit, your €500 deposit is fully refunded. No questions, no friction.',
+    body: 'If after our discovery questionnaire you decide we are not the right fit, your deposit is fully refunded. No questions, no friction.',
     accent: 'var(--accent)',
     accentName: 'cyan',
   },

@@ -42,7 +42,7 @@
 
 (1) The presentation of services on the Contractor's website does not constitute a binding offer, but an invitation to submit an offer by the consumer (invitatio ad offerendum).
 
-(2) By completing the multi-step order form and clicking "Submit & Pay", the consumer submits a binding contractual offer. The contract is concluded upon receipt of the Contractor's order confirmation or, at the latest, upon successful posting of the deposit to the Contractor's account.
+(2) Submitting the order form using “Send My Offer” requests a personalized offer without taking payment. The offer states the scope, total including VAT and selected payment plan. The customer commissions the project by digitally signing the offer. Stripe then collects the first agreed payment.
 
 (3) Before submitting the order, the consumer is specifically informed of the following points and must expressly agree to them:
 
@@ -63,7 +63,7 @@ Consumers have a statutory right of withdrawal. Details on the right of withdraw
 
 (1) Pursuant to § 356 (4) BGB, the right of withdrawal in a contract for the provision of services expires when the Contractor has fully performed the service and has only commenced the performance of the service after the consumer has given their express consent and has simultaneously confirmed their knowledge of the fact that they lose their right of withdrawal upon full performance of the contract by the Contractor.
 
-(2) In the Contractor's order form, the consumer can declare by ticking a corresponding checkbox:
+(2) An earlier start requires the consumer’s separate explicit declaration:
 
 > "I expressly request that Trendiva Lux begin the execution of the ordered service before the end of the withdrawal period. I am aware that I lose my right of withdrawal upon full performance of the contract by Trendiva Lux."
 
@@ -77,7 +77,7 @@ Consumers have a statutory right of withdrawal. Details on the right of withdraw
 
 (2) The specific scope of services results from the tier level chosen by the consumer (Landing, Business, Store, Web App, Custom), the add-ons selected in the order form, and the work contract concluded between the parties.
 
-(3) Unless expressly agreed otherwise, exactly one revision round is included in the contract price. Further revision rounds will be charged separately based on effort.
+(3) Unless expressly agreed otherwise, the revision rounds stated in the signed offer are included in the contract price. Further revision rounds will be charged separately based on effort.
 
 (4) The consumer is obliged to provide all cooperative actions required for contract fulfillment in a timely manner, in particular:
 
@@ -91,15 +91,11 @@ Consumers have a statutory right of withdrawal. Details on the right of withdraw
 
 ## § 6 Remuneration, Payment Terms
 
-(1) The remuneration is based on the tier level chosen by the consumer and the selected add-ons. All prices on the website are final prices including statutory VAT.
+(1) The remuneration is based on the tier level chosen by the consumer and the selected add-ons. The website displays net prices and corresponding totals including 19% VAT. The signed offer states the binding gross total.
 
-(2) Payment is made in two installments:
+(2) The payment plan in the signed offer is binding: full payment after signing; 50% after signing and 50% after acceptance, before final handover; or four monthly payments without markup or automatic renewal. The exact gross amounts are stated in the offer. The first payment replaces a separate deposit. Publication requires payment of all amounts due at that time; final files and agreed ownership rights transfer after full payment.
 
-a) Deposit of 50% of the total price upon contract conclusion, due immediately and payable via Stripe Checkout (credit card or SEPA direct debit).
-
-b) Final payment of 50% of the total price after acceptance of the work, due within 7 calendar days after the consumer's written acceptance declaration or deemed acceptance pursuant to § 8 (4).
-
-(3) The Contractor commences work after successful posting of the deposit and after the consumer's express consent to early contract execution pursuant to § 4 (2).
+(3) Work starts after confirmation of the first agreed payment and provision of the required content and access. For consumers, work begins after the withdrawal period unless a separate explicit request under § 4 has been provided.
 
 (4) The Contractor is entitled to withhold the delivery of the completed work until full payment of the final installment.
 

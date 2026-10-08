@@ -6,8 +6,8 @@ const PHASES = [
     kw: 'ONBOARDING',
     title: 'Onboarding',
     range: 'Day 0 — 1',
-    body: 'No cold call. No NDA theatre. You complete a 12-step Seamless Onboarding questionnaire — designed so a busy founder can finish it in one sitting — and we answer with a written fit verdict. Plain language. Zero fluff.',
-    micro: ['12-step questionnaire', 'Asynchronous · no calls', 'Written fit verdict'],
+    body: 'Choose your package. Receive a tailored agreement by email, review and sign it, then pay using your selected plan securely through Stripe. After payment, complete your project brief in one sitting so we can start your build.',
+    micro: ['Tailored agreement', 'Secure Stripe payment', 'Brief after payment'],
     glyph: 'discovery',
   },
   {
@@ -657,7 +657,7 @@ export const Process = () => {
   const activePhaseIndex = activePhases.lastIndexOf(true);
 
   return (
-    <section ref={ref} className="relative py-28 md:py-40 bg-app overflow-hidden">
+    <section id="process" ref={ref} className="relative py-28 md:py-40 bg-app overflow-hidden">
       <SunsetBackdrop progress={progress} />
       <GaussianHorizon progress={progress} activePhase={activePhaseIndex} />
 

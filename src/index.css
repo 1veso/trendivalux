@@ -571,3 +571,6 @@ html { transition: background 800ms ease; }
   .tier-price-sweep,
   .tier-marquee-track { animation: none !important; }
 }
+
+/* Keep section anchors visible below the fixed navigation. */
+section[id] { scroll-margin-top: 96px; }

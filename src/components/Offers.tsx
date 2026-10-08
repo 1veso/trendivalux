@@ -152,6 +152,7 @@ const TierCard = ({
             >
               {tier.price}
             </div>
+            <p className="font-mono text-[10px] text-2 mt-2">Net + 19% VAT · {(Number(tier.price.replace(/[^0-9]/g, '')) * 1.19).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} incl. VAT</p>
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-2 mt-1">{tier.timeline}</div>
           </div>
 
@@ -193,7 +194,7 @@ const TierCard = ({
                   border: `1px solid ${accentColor}`,
                 }}
               >
-                Reserve Slot — €500 <Icon.ArrowRight className="w-3.5 h-3.5" />
+                Choose {tier.name} <Icon.ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
             <a
@@ -233,7 +234,7 @@ export const Offers = ({
           <span className="block font-script grad-text-cm italic">work together.</span>
         </h2>
         <p className="text-2 mt-5 leading-relaxed font-editorial text-[1.1rem] max-w-[640px]">
-          Every tier secures with a <span className="text-1">€500 deposit</span>. Refundable within 7 days after the discovery questionnaire.
+          Every package offers <span className="text-1">LUX or DELUXE</span>. Pay in full, 50/50, or four monthly payments. Sign your emailed offer before Stripe checkout.
           Credited to your final invoice.
         </p>
       </div>

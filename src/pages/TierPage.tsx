@@ -167,7 +167,8 @@ const TierHero = ({ config }: { config: TierConfig }) => {
               >
                 {config.priceLabel}
               </div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut mt-1">50% to start · 50% on launch</div>
+              <p className="font-mono text-[10px] text-2 mt-2">Net + 19% VAT · {(config.price * 1.19).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} incl. VAT</p>
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut mt-1">LUX / DELUXE · full, 50/50 or 4 payments</div>
             </div>
             <div className="h-12 w-px hidden md:block relative" style={{ background: 'var(--border)' }} />
             <div className="relative">
@@ -559,8 +560,8 @@ const TierExamples = ({ config }: { config: TierConfig }) => {
         <div className="grid md:grid-cols-3 gap-5">
           {config.examples.map((ex, i) => (
             <Reveal key={ex.name} delay={i * 100}>
-              <div
-                className="group relative h-full rounded-2xl border bd overflow-hidden transition-all duration-500 hover:-translate-y-1 neon-edge"
+              <a href={ex.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${ex.name}`}
+                className="block group relative h-full rounded-2xl border bd overflow-hidden transition-all duration-500 hover:-translate-y-1 neon-edge"
                 style={{ background: 'color-mix(in oklab, var(--surface) 70%, transparent)' }}
               >
                 <div
@@ -569,8 +570,9 @@ const TierExamples = ({ config }: { config: TierConfig }) => {
                     background: `linear-gradient(135deg, color-mix(in oklab, ${accent} 30%, var(--surface-2)), var(--surface-2) 60%, color-mix(in oklab, var(--accent-2) 25%, var(--surface-2)))`,
                   }}
                 >
+                  <img src={ex.preview} alt={`${ex.name} website preview`} loading="lazy" className="absolute inset-0 w-full h-full object-cover object-top" />
                   <div className="absolute inset-0 grid-floor opacity-30" />
-                  <div className="absolute inset-0 grid place-items-center">
+                  <div className="absolute inset-0 grid place-items-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                     <div
                       className="font-marquee text-[clamp(2rem,5vw,3rem)] tracking-tight"
                       style={{
@@ -599,7 +601,7 @@ const TierExamples = ({ config }: { config: TierConfig }) => {
                     {ex.url !== '#' && <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut">{ex.url} ↗</span>}
                   </div>
                 </div>
-              </div>
+              </a>
             </Reveal>
           ))}
         </div>
@@ -683,7 +685,7 @@ const TierFinalCTA = ({ config }: { config: TierConfig }) => {
             Reserve your <span style={{ color: accent }}>{config.name}</span> build.
           </h3>
           <p className="text-2 text-lg leading-relaxed max-w-[560px] mx-auto mt-6">
-            50% to start. Work begins the moment your deposit lands. Final 50% only after you approve the live site.
+            {config.id === 'custom' ? 'Tell us what you need. We will prepare a tailored scope and agreement before payment.' : 'Choose LUX or DELUXE and your payment plan. Sign your tailored agreement, pay through Stripe, then complete your project brief.'}
           </p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <button
@@ -691,7 +693,7 @@ const TierFinalCTA = ({ config }: { config: TierConfig }) => {
               className="gold-pulse group inline-flex items-center gap-2.5 pl-6 pr-5 py-3.5 rounded-full font-mono text-[12px] font-bold uppercase tracking-[0.18em]"
               style={{ background: 'var(--gold)', color: '#000' }}
             >
-              Reserve {config.name} — €{Math.round(config.price / 2).toLocaleString()} deposit
+              {config.id === 'custom' ? 'Discuss your custom build' : `Choose ${config.name}`}
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/15 group-hover:translate-x-0.5 transition">
                 <Icon.ArrowRight className="w-3.5 h-3.5" />
               </span>

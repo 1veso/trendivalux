@@ -172,7 +172,7 @@ export const TopNav = ({
       }}
     >
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between">
-        <a href="#top" className="flex items-center gap-3 group">
+        <a href="/#top" className="flex items-center gap-3 group">
           <div
             className="relative w-11 h-11 rounded-lg overflow-hidden grid place-items-center transition"
             style={{
@@ -207,15 +207,15 @@ export const TopNav = ({
           </div>
         </a>
         <nav className="hidden md:flex items-center gap-7 font-mono text-[11px] uppercase tracking-[0.22em] text-2">
-          <a href="#builds" className="nav-link group">
+          <a href="/#builds" className="nav-link group">
             <span className="nav-link__bracket">[</span>Builds<span className="nav-link__bracket">]</span>
             <span className="nav-link__rule" />
           </a>
-          <a href="#offers" className="nav-link group">
+          <a href="/#offers" className="nav-link group">
             <span className="nav-link__bracket">[</span>Offers<span className="nav-link__bracket">]</span>
             <span className="nav-link__rule" />
           </a>
-          <a href="#contact" className="nav-link group">
+          <a href="/#contact" className="nav-link group">
             <span className="nav-link__bracket">[</span>Contact<span className="nav-link__bracket">]</span>
             <span className="nav-link__rule" />
           </a>
@@ -346,7 +346,7 @@ export const Hero = ({ theme, remainingSlots }: { theme: string; remainingSlots?
             </span>
           </button>
           <a
-            href="#builds"
+            href="/#builds"
             onClick={() => triggerConfirm('builds')}
             data-confirming={confirmTarget === 'builds' || undefined}
             key={`builds-${confirmKey}`}

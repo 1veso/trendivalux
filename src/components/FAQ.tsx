@@ -4,7 +4,7 @@ import { Icon } from './Icons';
 const QA: [string, string][] = [
   ['How fast can you actually deliver?', 'Landing tier in 3 days. Business in 14. Store in 21. Web App in 4 to 6 weeks. We hit these dates because we run lean and use AI-augmented tooling. The deadline is not a marketing claim — it is in your contract.'],
   ['Who actually builds the site?', 'Jay (founder) leads every project end to end. We use AI agents (Claude Code, R59, R60) as force multipliers, not as replacements. You always work directly with the founder. No account managers, no offshore handoffs.'],
-  ['What if I do not like the design?', 'One round of revisions is included before build. If after revisions we still are not aligned, you cancel and your deposit is refunded. We do not start building until you say go.'],
+  ['What if I do not like the design?', 'Two bundled revision rounds are included in LUX; your DELUXE offer defines its agreed rounds. If after revisions we still are not aligned, you cancel and your deposit is refunded. We do not start building until you say go.'],
   ['Do you offer hosting and maintenance?', 'Optional. Cloudflare Pages hosting is free for most projects. Maintenance retainers start at €290 per month for security patches, content updates, and analytics reviews. You can also self-host. Your call.'],
   ['Is the site mine, or do you keep ownership?', 'Yours. Completely. On launch day you receive the GitHub repo, all credentials, all domain records, all assets. We do not hold ownership over a single byte.'],
   ['What about hosting Germany / GDPR / Datenschutz?', 'Cloudflare offers EU data residency. We provide a GDPR-compliant cookie banner, an Impressum template (per §5 TMG), and Datenschutzerklärung based on IT-Recht Kanzlei templates. We are based in Düren, we know the rules.'],
@@ -14,7 +14,7 @@ const QA: [string, string][] = [
 export const FAQ = () => {
   const [open, setOpen] = useState(0);
   return (
-    <section className="relative py-24 md:py-32 bg-app overflow-hidden">
+    <section id="faq" className="relative py-24 md:py-32 bg-app overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-px sunset-line opacity-30" />
 
       <div
@@ -104,7 +104,7 @@ export const FAQ = () => {
 
         <p className="mt-10 text-center font-script italic text-2 text-lg">
           Still curious?{' '}
-          <a href="#contact" className="accent underline-offset-4 hover:underline transition not-italic font-mono text-[11px] uppercase tracking-[0.22em] ml-1">
+          <a href="/#contact" className="accent underline-offset-4 hover:underline transition not-italic font-mono text-[11px] uppercase tracking-[0.22em] ml-1">
             Ask in the discovery questionnaire ↓
           </a>
         </p>

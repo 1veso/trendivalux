@@ -44,11 +44,11 @@ Im Vertragspreis ist eine (1) Revisionsrunde nach Vorlage des fertiggestellten W
 | 50 % Anzahlung bei Vertragsunterzeichnung | {{deposit_paid_eur}} |
 | 50 % Restzahlung bei Abnahme | {{final_payment_eur}} |
 
-Alle Beträge in Euro. Die Anzahlung ist bei Vertragsunterzeichnung sofort fällig und wurde durch Stripe Checkout (Kreditkarte oder SEPA-Lastschrift) abgewickelt. Die Restzahlung ist innerhalb von 7 Kalendertagen nach schriftlicher Abnahmeerklärung des Auftraggebers oder fingierter Abnahme gemäß den AGB fällig. Die Aufnahme der Arbeit durch den Auftragnehmer erfolgt nach erfolgreicher Verbuchung der Anzahlung.
+Alle Beträge in Euro. Die Anzahlung ist bei Vertragsunterzeichnung sofort fällig und wird nach der Unterzeichnung durch Stripe Checkout (Kreditkarte oder SEPA-Lastschrift) abgewickelt. Die Restzahlung ist innerhalb von 7 Kalendertagen nach schriftlicher Abnahmeerklärung des Auftraggebers oder fingierter Abnahme gemäß den AGB fällig. Die Aufnahme der Arbeit durch den Auftragnehmer erfolgt nach erfolgreicher Verbuchung der Anzahlung.
 
 ## § 4 Lieferzeit
 
-Lieferung erfolgt innerhalb von **{{delivery_timeline}}** ab Vertragsunterzeichnung und vollständiger Bereitstellung der Mitwirkungsleistungen des Auftraggebers. Zwischenstände werden vom Auftragnehmer regelmäßig kommuniziert.
+Lieferung erfolgt innerhalb von **{{delivery_timeline}}** ab erfolgreicher Verbuchung der Anzahlung und vollständiger Bereitstellung der Mitwirkungsleistungen des Auftraggebers. Zwischenstände werden vom Auftragnehmer regelmäßig kommuniziert.
 
 ## § 5 Mitwirkungspflichten des Auftraggebers
 
@@ -147,7 +147,7 @@ The contract price includes one (1) revision round after submission of the compl
 | 50% deposit upon contract signing | {{deposit_paid_eur}} |
 | 50% final payment upon acceptance | {{final_payment_eur}} |
 
-All amounts in Euros. The deposit is due immediately upon contract signing and has been processed via Stripe Checkout (credit card or SEPA direct debit). The final payment is due within 7 calendar days after the Client's written acceptance declaration or deemed acceptance pursuant to the GTC. The Contractor commences work after successful posting of the deposit.
+All amounts in Euros. The deposit is due immediately upon contract signing and will be processed after signing via Stripe Checkout (credit card or SEPA direct debit). The final payment is due within 7 calendar days after the Client's written acceptance declaration or deemed acceptance pursuant to the GTC. The Contractor commences work after successful posting of the deposit.
 
 ## § 4 Delivery Time
 
