@@ -67,11 +67,9 @@ type Tier = (typeof TIERS)[number];
 const TierCard = ({
   tier,
   onReserve,
-  onCall,
 }: {
   tier: Tier;
   onReserve: (id: string) => void;
-  onCall: () => void;
 }) => {
   const isCustom = (tier as any).isCustom;
   const popular = (tier as any).popular;
@@ -178,11 +176,11 @@ const TierCard = ({
           <div className="mt-6 pt-5 border-t bd">
             {isCustom ? (
               <button
-                onClick={onCall}
+                onClick={() => onReserve(tier.id)}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition"
                 style={{ background: 'var(--gold)', color: '#000' }}
               >
-                Book Strategy Call <Icon.ArrowRight className="w-3.5 h-3.5" />
+                Choose Custom <Icon.ArrowRight className="w-3.5 h-3.5" />
               </button>
             ) : (
               <button
@@ -212,10 +210,8 @@ const TierCard = ({
 
 export const Offers = ({
   onReserve,
-  onCall,
 }: {
   onReserve: (id: string) => void;
-  onCall: () => void;
 }) => (
   <section id="offers" className="relative py-24 md:py-32 bg-app overflow-hidden">
     <div className="absolute inset-0 opacity-40">
@@ -240,7 +236,7 @@ export const Offers = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5 mt-10 md:mt-14">
         {TIERS.map((t) => (
-          <TierCard key={t.id} tier={t} onReserve={onReserve} onCall={onCall} />
+          <TierCard key={t.id} tier={t} onReserve={onReserve} />
         ))}
       </div>
 

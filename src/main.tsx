@@ -7,8 +7,8 @@ import { AppRoutes } from './App';
 import './index.css';
 
 // Sentry error tracking. Disabled when VITE_SENTRY_DSN is not set so local
-// dev does not phone home. PII scrubbing is in beforeSend; Replay masks
-// text and blocks media so signing flows and Stripe iframes stay private.
+// Dev does not phone home. Error events scrub private links and breadcrumbs;
+// transactions with private links are discarded and session replay is disabled.
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN as string,
@@ -23,6 +23,11 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     ],
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
+    beforeSendTransaction(event) {
+      // Checkout, project and quote-review URLs contain bearer tokens.
+      if (JSON.stringify(event).includes('token=')) return null;
+      return event;
+    },
     beforeSend(event) {
       if (event.request?.cookies) delete event.request.cookies;
       if (event.user) {

@@ -137,3 +137,18 @@ test('successful order shows inbox guidance and offers a signing link before any
   assert.match(document.body.textContent,/CHECK YOUR EMAIL/); assert.ok(document.querySelector('a[href="https://sign.example/s/order"]'));
   assert.equal(document.querySelector('a[href*="/scoping/"]'),null);
 });
+
+test('Custom package starts the offer flow and requests the selected level and plan for review', async () => {
+  await mount(React.createElement(ui.AppRoutes));
+  await click(button('Choose Custom'));
+  assert.ok(document.querySelector('[role="dialog"][aria-label="Order your website"]'));
+  await click(button('DELUXE')); await click(button('50% now')); await click(button('Continue'));
+  await click(button('Unternehmen')); await fill('input[aria-label="Jane Doe"]', 'Client'); await fill('input[aria-label="jane@business.com"]', 'client@example.com');
+  let sent;
+  globalThis.fetch = async (_url, options) => { sent = JSON.parse(options.body); return Response.json({ quoteRequested: true }); };
+  await click(button('Request My Offer'));
+  assert.equal(sent.tier, 'custom'); assert.equal(sent.serviceLevel, 'deluxe'); assert.equal(sent.paymentPlan, 'split');
+  assert.match(document.querySelector('[role="dialog"]').textContent, /CHECK YOUR EMAIL/);
+  assert.match(document.querySelector('[role="dialog"]').textContent, /review your scope.*final price/);
+  assert.equal(document.querySelector('a[href*="/checkout/"]'), null);
+});

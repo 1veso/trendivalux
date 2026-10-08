@@ -469,9 +469,7 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                   >
                     {submitting
                       ? 'Preparing your agreement…'
-                      : isCustom
-                      ? <>Book Strategy Call <Icon.ArrowRight className="w-3.5 h-3.5" /></>
-                      : <>Send My Offer <Icon.ArrowRight className="w-3.5 h-3.5" /></>}
+                      : <>{needsQuote ? 'Request My Offer' : 'Send My Offer'} <Icon.ArrowRight className="w-3.5 h-3.5" /></>}
                   </button>
                   {submitError && (
                     <span role="alert" className="font-mono text-[10px] text-red-400 max-w-[260px] text-right">
