@@ -4,11 +4,14 @@ import { createStripeClient } from '../_shared/stripe-client';
 import { createAdminClient } from '../_shared/supabase-admin';
 import {
   sendAsyncPaymentFailed,
+  sendDepositConfirmation,
   sendFounderAlert,
   sendFounderKickoff,
 } from '../_shared/email';
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '../_shared/rate-limit';
+import { PAID_ORDER_STATUSES, scopingUrl } from '../_shared/order-flow';
 import type { Env } from '../_shared/env';
+import { assertStripeKey, assertLiveObject, ensureInstallments } from '../_shared/stripe-payments';
 
 const TIER_LABELS: Record<string, string> = {
   landing: 'Landing',
@@ -29,6 +32,11 @@ interface OrderRow {
   status: string;
   questionnaire_data: Record<string, unknown> | null;
   stripe_payment_intent_id: string | null;
+  stripe_session_id: string | null;
+  checkout_token: string | null;
+  contract_status: string;
+  deposit_confirmation_sent_at: string | null;
+  founder_kickoff_sent_at: string | null;
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
@@ -42,6 +50,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return rateLimitResponse(rateLimit.retryAfter ?? 60);
   }
 
+  try { assertStripeKey(env); } catch { return new Response('Production payment configuration unavailable', { status: 503 }); }
   const stripe = createStripeClient(env.STRIPE_SECRET_KEY);
   const supabase = createAdminClient(env);
 
@@ -63,6 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return new Response('Invalid signature', { status: 400 });
   }
 
+  try { assertLiveObject(env, event); } catch { return new Response('Test events refused in production', { status: 400 }); }
   console.log('[stripe-webhook] signature verified', { eventType: event.type, eventId: event.id, timestamp: Date.now() });
 
   try {
@@ -80,6 +90,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         break;
       }
 
+      case 'invoice.payment_succeeded': {
+        await handleInstallmentInvoice(event.data.object as Stripe.Invoice, env, supabase);
+        break;
+      }
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const orderId = invoice.parent?.subscription_details?.metadata?.order_id;
+        if (orderId) await sendFounderAlert(env.RESEND_API_KEY, env.FOUNDER_EMAIL, 'Installment needs attention', `<p>Order ${orderId}. Please review the failed installment in Stripe and its automatic retry schedule.</p>`);
+        break;
+      }
       case 'charge.refunded': {
         const charge = event.data.object as Stripe.Charge;
         await handleChargeRefunded(charge, env, supabase);
@@ -99,8 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   } catch (err) {
     console.error(`Webhook handler error for ${event.type}:`, err);
     // Return 500 so Stripe retries. Idempotency guards ensure safe retries.
-    const message = err instanceof Error ? err.message : 'unknown';
-    return new Response(`Handler error: ${message}`, { status: 500 });
+    return new Response('Payment processing temporarily unavailable', { status: 500 });
   }
 
   return Response.json({ received: true });
@@ -125,46 +144,48 @@ async function handleCheckoutPaid(
     return;
   }
 
-  const { data: order, error: fetchError } = await supabase
-    .from('orders')
-    .select('id, tier, total_price_cents, deposit_amount_cents, customer_email, customer_name, customer_address, status, questionnaire_data, stripe_payment_intent_id')
-    .eq('id', orderId)
-    .single();
-
-  if (fetchError || !order) {
-    throw new Error(`Order not found for stripe order_id=${orderId}: ${fetchError?.message}`);
-  }
-
-  const orderRow = order as OrderRow;
-
-  // Idempotency: if we already processed this order, do nothing.
-  if (['paid', 'contract_sent', 'contract_signed_deposit_paid', 'active', 'completed'].includes(orderRow.status)) {
-    console.log(`Order ${orderId} already in status=${orderRow.status}; skipping duplicate webhook`);
-    return;
-  }
-
+  const { data: order, error: fetchError } = await supabase.from('orders').select('*').eq('id', orderId).single();
+  if (fetchError || !order) throw new Error('Order not found');
+  const orderRow = order as OrderRow & Record<string, any>;
+  if (['cancelled', 'refunded'].includes(orderRow.status)) return;
+  const balance = session.metadata?.stage === 'balance';
+  const expected = balance ? orderRow.payment_schedule?.[1] : orderRow.deposit_amount_cents;
+  const linkedSession = balance ? orderRow.stripe_balance_session_id : orderRow.stripe_session_id;
+  if (linkedSession !== session.id || session.currency !== 'eur' || session.amount_total !== expected) throw new Error('Payment does not match signed order');
+  if (orderRow.checkout_token && orderRow.contract_status !== 'signed') throw new Error('Agreement not signed');
   const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null;
-
-  await supabase
-    .from('orders')
-    .update({
-      status: 'paid',
-      customer_name: session.customer_details?.name ?? orderRow.customer_name,
-      customer_address:
-        (session.customer_details?.address as unknown as Record<string, unknown> | null) ??
-        orderRow.customer_address,
-      stripe_payment_intent_id: paymentIntentId,
-      stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null,
-    })
-    .eq('id', orderId);
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
+  const { error: linkError } = await supabase.from('orders').update({
+    customer_name: session.customer_details?.name ?? orderRow.customer_name,
+    customer_address: session.customer_details?.address ?? orderRow.customer_address,
+    ...(balance ? {} : { stripe_payment_intent_id: paymentIntentId, stripe_customer_id: customerId }),
+  }).eq('id', orderId);
+  if (linkError) throw new Error('Could not link payment details');
+  if (!balance) await ensureInstallments(createStripeClient(env.STRIPE_SECRET_KEY), supabase, orderRow, session);
+  const reference = typeof session.invoice === 'string' ? session.invoice : session.invoice?.id;
+  const { error: paymentError } = await supabase.rpc('record_order_payment', { p_order_id: orderId, p_reference: reference ? `invoice:${reference}` : `checkout:${session.id}`, p_amount: session.amount_total });
+  if (paymentError) throw new Error('Could not record confirmed payment');
+  if (balance) return;
 
   const tierName = TIER_LABELS[orderRow.tier] || orderRow.tier;
   const totalPriceFormatted = formatEur(orderRow.total_price_cents);
   const depositFormatted = formatEur(orderRow.deposit_amount_cents);
   const customerName = session.customer_details?.name ?? orderRow.customer_name ?? '';
 
-  await Promise.allSettled([
-    sendFounderKickoff(env.RESEND_API_KEY, {
+  if (!orderRow.deposit_confirmation_sent_at) {
+    await sendDepositConfirmation(env.RESEND_API_KEY, {
+      to: orderRow.customer_email, customerName, tier: tierName,
+      depositAmount: depositFormatted,
+      finalPaymentAmount: formatEur(orderRow.total_price_cents - orderRow.deposit_amount_cents),
+      paymentPlan: orderRow.payment_plan || 'split',
+      remainingPayments: (orderRow.payment_schedule || []).slice(1).map(formatEur),
+      scopingUrl: scopingUrl(env, orderRow), orderId: orderRow.id,
+    });
+    const { error } = await supabase.from('orders').update({ deposit_confirmation_sent_at: new Date().toISOString() }).eq('id', orderId);
+    if (error) throw new Error('Could not save customer email receipt');
+  }
+  if (!orderRow.founder_kickoff_sent_at) {
+    await sendFounderKickoff(env.RESEND_API_KEY, {
       to: env.FOUNDER_EMAIL,
       orderId: orderRow.id,
       tier: tierName,
@@ -173,14 +194,22 @@ async function handleCheckoutPaid(
       totalPrice: totalPriceFormatted,
       depositPrice: depositFormatted,
       questionnaireAnswers: orderRow.questionnaire_data ?? {},
-    }),
-  ]).then((results) => {
-    results.forEach((r) => {
-      if (r.status === 'rejected') {
-        console.error('Email send kickoff failed:', r.reason);
-      }
+      reviewUrl: orderRow.quote_review_token ? `${env.SITE_URL.replace(/\/$/, '')}/offer-review/${orderId}?token=${orderRow.quote_review_token}` : undefined,
     });
-  });
+    const { error } = await supabase.from('orders').update({ founder_kickoff_sent_at: new Date().toISOString() }).eq('id', orderId);
+    if (error) throw new Error('Could not save founder email receipt');
+  }
+}
+
+async function handleInstallmentInvoice(invoice: Stripe.Invoice, env: Env, supabase: ReturnType<typeof createAdminClient>) {
+  const orderId = invoice.parent?.subscription_details?.metadata?.order_id;
+  if (!orderId || invoice.status !== 'paid' || invoice.currency !== 'eur') return;
+  const { data: order } = await supabase.from('orders').select('*').eq('id', orderId).single();
+  if (!order || ['cancelled', 'refunded'].includes(order.status)) return;
+  const customer = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
+  if (order.payment_plan !== 'monthly4' || order.contract_status !== 'signed' || customer !== order.stripe_customer_id || !order.payment_schedule.slice(1).includes(invoice.amount_paid)) throw new Error('Invoice does not match signed installments');
+  const { error } = await supabase.rpc('record_order_payment', { p_order_id: orderId, p_reference: `invoice:${invoice.id}`, p_amount: invoice.amount_paid });
+  if (error) throw new Error('Could not record installment');
 }
 
 async function handleAsyncPaymentFailed(
@@ -193,17 +222,19 @@ async function handleAsyncPaymentFailed(
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, tier, customer_email, customer_name, status')
+    .select('id, tier, customer_email, customer_name, status, checkout_token, stripe_session_id')
     .eq('id', orderId)
     .single();
 
   if (!order) return;
+  if (order.stripe_session_id !== session.id) return;
   // Idempotency: don't reverse already-paid or already-cancelled orders.
-  if (['paid', 'contract_sent', 'contract_signed_deposit_paid', 'active', 'completed', 'cancelled', 'refunded'].includes(order.status as string)) {
+  if (['paid', 'contract_signed_deposit_paid', 'active', 'completed', 'cancelled', 'refunded'].includes(order.status as string)) {
     return;
   }
 
-  await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
+  const { error: updateError } = await supabase.from('orders').update({ status: order.checkout_token ? 'payment_failed' : 'cancelled' }).eq('id', orderId);
+  if (updateError) throw new Error('Could not record failed payment');
 
   const tierName = TIER_LABELS[order.tier as string] || (order.tier as string);
 
@@ -232,7 +263,7 @@ async function handleChargeRefunded(
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, tier, customer_email, status, total_price_cents')
+    .select('id, tier, customer_email, status, total_price_cents, stripe_schedule_id')
     .eq('stripe_payment_intent_id', paymentIntentId)
     .single();
 
@@ -242,7 +273,11 @@ async function handleChargeRefunded(
   }
   if (order.status === 'refunded') return;
 
-  await supabase.from('orders').update({ status: 'refunded' }).eq('id', order.id);
+  if (charge.refunded) {
+    if (order.stripe_schedule_id) await createStripeClient(env.STRIPE_SECRET_KEY).subscriptionSchedules.cancel(order.stripe_schedule_id);
+    const { error } = await supabase.from('orders').update({ status: 'refunded' }).eq('id', order.id);
+    if (error) throw new Error('Could not record refund');
+  }
 
   const refundedCents = charge.amount_refunded ?? 0;
   await sendFounderAlert(

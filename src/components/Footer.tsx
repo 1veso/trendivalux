@@ -49,11 +49,11 @@ export const Footer = ({ theme }: { theme: string }) => {
           <div>
             <div className="font-mono text-[9px] uppercase tracking-[0.28em] text-mut mb-4">Navigate</div>
             <ul className="space-y-2.5 text-sm">
-              <li><a href="#builds" className="text-2 hover:opacity-70 transition">Builds</a></li>
-              <li><a href="#offers" className="text-2 hover:opacity-70 transition">Offers</a></li>
-              <li><a href="#contact" className="text-2 hover:opacity-70 transition">Process</a></li>
-              <li><a href="#contact" className="text-2 hover:opacity-70 transition">FAQ</a></li>
-              <li><a href="#contact" className="text-2 hover:opacity-70 transition">Contact</a></li>
+              <li><a href="/#builds" className="text-2 hover:opacity-70 transition">Builds</a></li>
+              <li><a href="/#offers" className="text-2 hover:opacity-70 transition">Offers</a></li>
+              <li><a href="/#process" className="text-2 hover:opacity-70 transition">Process</a></li>
+              <li><a href="/#faq" className="text-2 hover:opacity-70 transition">FAQ</a></li>
+              <li><a href="/#contact" className="text-2 hover:opacity-70 transition">Contact</a></li>
             </ul>
           </div>
 
@@ -270,6 +270,7 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
   const [message, setMessage] = useState('');
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -278,6 +279,7 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
       setMessage('');
       setDone(false);
       setSubmitting(false);
+      setError(null);
       return;
     }
     const prevOverflow = document.body.style.overflow;
@@ -291,13 +293,21 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !message) return;
+    if (!name.trim() || !email.trim() || !message.trim() || submitting) return;
+    setError(null);
     setSubmitting(true);
-    (window as any).__contactSubmissions = (window as any).__contactSubmissions || [];
-    (window as any).__contactSubmissions.push({ name, email, message, ts: new Date().toISOString() });
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    setDone(true);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message }),
+      });
+      if (!response.ok) throw new Error(response.status === 429
+        ? 'Please wait a minute before trying again.'
+        : 'Your message could not be sent. Please retry or email hello@trendivalux.com.');
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Connection interrupted. Please retry.');
+    } finally { setSubmitting(false); }
   };
 
   return (
@@ -331,7 +341,7 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
+                    placeholder="Your name" aria-label="Your name" maxLength={200}
                     className="min-h-[48px] px-4 py-3 rounded-lg border bd font-mono focus:outline-none focus:ring-1"
                     style={{ background: 'var(--surface-2)', color: 'var(--text)', fontSize: '16px' }}
                   />
@@ -340,7 +350,7 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@business.com"
+                    placeholder="you@business.com" aria-label="Your email" maxLength={254}
                     className="min-h-[48px] px-4 py-3 rounded-lg border bd font-mono focus:outline-none focus:ring-1"
                     style={{ background: 'var(--surface-2)', color: 'var(--text)', fontSize: '16px' }}
                   />
@@ -350,7 +360,7 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="A few lines about what you're building…"
-                  rows={5}
+                  rows={5} aria-label="Project message" maxLength={5000}
                   className="w-full px-4 py-3 rounded-lg border bd font-mono focus:outline-none resize-none"
                   style={{ background: 'var(--surface-2)', color: 'var(--text)', fontSize: '16px' }}
                 />
@@ -370,6 +380,7 @@ export const ContactModal = ({ open, onClose }: { open: boolean; onClose: () => 
                     </>
                   )}
                 </button>
+                {error && <p role="alert" className="text-sm accent-2">{error}</p>}
                 <p className="text-[10px] text-mut font-mono uppercase tracking-[0.22em] text-center pt-1">Or email hello@trendivalux.com directly.</p>
               </form>
             </>

@@ -1,17 +1,14 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, useParams, Navigate } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import * as Sentry from '@sentry/react';
-import TrendivaLuxLanding from './components/TrendivaLuxLanding';
-import TierPage from './pages/TierPage';
-import LegalPageSkeleton from './components/LegalPageSkeleton';
-import { TIER_CONFIGS } from './lib/tier-configs';
+import { AppRoutes } from './App';
 import './index.css';
 
 // Sentry error tracking. Disabled when VITE_SENTRY_DSN is not set so local
-// dev does not phone home. PII scrubbing is in beforeSend; Replay masks
-// text and blocks media so signing flows and Stripe iframes stay private.
+// Dev does not phone home. Error events scrub private links and breadcrumbs;
+// transactions with private links are discarded and session replay is disabled.
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN as string,
@@ -24,14 +21,21 @@ if (import.meta.env.VITE_SENTRY_DSN) {
         blockAllMedia: true,
       }),
     ],
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
+    beforeSendTransaction(event) {
+      // Checkout, project and quote-review URLs contain bearer tokens.
+      if (JSON.stringify(event).includes('token=')) return null;
+      return event;
+    },
     beforeSend(event) {
       if (event.request?.cookies) delete event.request.cookies;
       if (event.user) {
         delete event.user.email;
         delete event.user.ip_address;
       }
+      if (event.request?.url) event.request.url = event.request.url.replace(/([?&]token=)[^&]+/g, '$1[redacted]');
+      if (event.breadcrumbs) event.breadcrumbs = event.breadcrumbs.map(crumb => ({ ...crumb, data: undefined }));
       return event;
     },
   });
@@ -49,44 +53,12 @@ function ErrorFallback() {
   );
 }
 
-const SuccessPage = lazy(() => import('./pages/SuccessPage'));
-const PostPaymentScoping = lazy(() => import('./pages/PostPaymentScoping'));
-const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
-const DatenschutzPage = lazy(() => import('./pages/DatenschutzPage'));
-const AGBPage = lazy(() => import('./pages/AGBPage'));
-const AGBB2CPage = lazy(() => import('./pages/AGBB2CPage'));
-const WiderrufsbelehrungPage = lazy(() => import('./pages/WiderrufsbelehrungPage'));
-
-function TierRoute() {
-  const { slug } = useParams<{ slug: string }>();
-  if (!slug || !(slug in TIER_CONFIGS)) {
-    return <Navigate to="/" replace />;
-  }
-  const config = TIER_CONFIGS[slug as keyof typeof TIER_CONFIGS];
-  return <TierPage config={config} />;
-}
-
-const withSkeleton = (node: React.ReactNode) => (
-  <Suspense fallback={<LegalPageSkeleton />}>{node}</Suspense>
-);
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
       <HelmetProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<TrendivaLuxLanding />} />
-            <Route path="/tiers/:slug" element={<TierRoute />} />
-            <Route path="/success" element={withSkeleton(<SuccessPage />)} />
-            <Route path="/impressum" element={withSkeleton(<ImpressumPage />)} />
-            <Route path="/datenschutz" element={withSkeleton(<DatenschutzPage />)} />
-            <Route path="/agb" element={withSkeleton(<AGBPage />)} />
-            <Route path="/agb-b2c" element={withSkeleton(<AGBB2CPage />)} />
-            <Route path="/widerrufsbelehrung" element={withSkeleton(<WiderrufsbelehrungPage />)} />
-            <Route path="/scoping/:orderId" element={withSkeleton(<PostPaymentScoping />)} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </HelmetProvider>
     </Sentry.ErrorBoundary>

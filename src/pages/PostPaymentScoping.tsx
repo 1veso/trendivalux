@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import SEO from '../components/SEO';
 
 // ── Local chip/card components ────────────────────────────────────────────────
@@ -158,7 +158,7 @@ function SectionHeading({ children }: { children: ReactNode }) {
 
 // Client-side per-file cap — matches the server-side limit in save-scoping.ts
 const CLIENT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-const BRAND_ACCEPT = 'image/*,.pdf,.svg';
+const BRAND_ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,.pdf';
 const REFERENCE_ACCEPT = 'image/*,.pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.csv,.zip';
 
 // Inline file list with per-file size display and remove button
@@ -273,7 +273,7 @@ const LANGUAGE_OPTIONS = [
 
 const DEADLINE_OPTIONS = [
   { id: 'standard', label: 'Standard', sub: '4–8 weeks, relaxed timeline' },
-  { id: 'rush', label: 'Rush', sub: '2–3 weeks (+30% surcharge)' },
+  { id: 'rush', label: 'Rush', sub: 'Request an earlier deadline — subject to a separate quote' },
   { id: 'specific', label: 'Specific date', sub: "I have a hard deadline" },
 ] as const satisfies readonly CardOption[];
 
@@ -341,11 +341,14 @@ type FormErrors = Partial<Record<keyof ScopingForm, string>>;
 
 export default function PostPaymentScoping() {
   const { orderId } = useParams<{ orderId: string }>();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
   const [pageState, setPageState] = useState<PageState>('loading');
   const [form, setForm] = useState<ScopingForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const brandFilesRef = useRef<HTMLInputElement>(null);
   const refFilesRef = useRef<HTMLInputElement>(null);
   const [fileWarnings, setFileWarnings] = useState<{ brand: string[]; reference: string[] }>({
@@ -359,7 +362,7 @@ export default function PostPaymentScoping() {
       setPageState('not_ready');
       return;
     }
-    fetch(`/api/scoping-context?order_id=${encodeURIComponent(orderId)}`)
+    fetch(`/api/scoping-context?order_id=${encodeURIComponent(orderId)}${token ? `&token=${encodeURIComponent(token)}` : ''}`)
       .then(r => r.json() as Promise<{ ready?: boolean; alreadySubmitted?: boolean }>)
       .then(data => {
         if (!data.ready) {
@@ -371,7 +374,7 @@ export default function PostPaymentScoping() {
         }
       })
       .catch(() => setPageState('not_ready'));
-  }, [orderId]);
+  }, [orderId, token]);
 
   // Typed setter that also clears the corresponding field error
   function set<K extends keyof ScopingForm>(key: K) {
@@ -493,9 +496,11 @@ export default function PostPaymentScoping() {
       const res = await fetch('/api/save-scoping', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, scoping, attachments }),
+        body: JSON.stringify({ orderId, token, scoping, attachments }),
       });
       if (res.ok) {
+        const result = await res.json();
+        setUploadErrors(result.fileErrors || []);
         setPageState('success');
       } else {
         const msg = await res.text().catch(() => '');
@@ -604,9 +609,11 @@ export default function PostPaymentScoping() {
             </span>
           </h1>
           <p className="text-lg leading-relaxed text-2">
-            We have everything we need. Expect a message within 24 hours with
-            your project timeline and first preview.
+            Your brief is saved. I will review the details and confirm your
+            project timeline and next steps within 24 hours.
           </p>
+          {uploadErrors.length > 0 && <div role="alert" className="mt-6 text-sm accent-2"><p>Some files could not be uploaded. Please email them to hello@trendivalux.com:</p><ul>{uploadErrors.map(message => <li key={message}>{message}</li>)}</ul></div>}
+          <a href="/" className="block mt-6 underline text-sm">Back to home</a>
           {orderId && (
             <p
               className="font-mono text-[10px] uppercase tracking-[0.22em] mt-8 text-mut"

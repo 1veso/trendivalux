@@ -67,11 +67,9 @@ type Tier = (typeof TIERS)[number];
 const TierCard = ({
   tier,
   onReserve,
-  onCall,
 }: {
   tier: Tier;
   onReserve: (id: string) => void;
-  onCall: () => void;
 }) => {
   const isCustom = (tier as any).isCustom;
   const popular = (tier as any).popular;
@@ -152,6 +150,7 @@ const TierCard = ({
             >
               {tier.price}
             </div>
+            <p className="font-mono text-[10px] text-2 mt-2">Net + 19% VAT · {(Number(tier.price.replace(/[^0-9]/g, '')) * 1.19).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} incl. VAT</p>
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-2 mt-1">{tier.timeline}</div>
           </div>
 
@@ -177,11 +176,11 @@ const TierCard = ({
           <div className="mt-6 pt-5 border-t bd">
             {isCustom ? (
               <button
-                onClick={onCall}
+                onClick={() => onReserve(tier.id)}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition"
                 style={{ background: 'var(--gold)', color: '#000' }}
               >
-                Book Strategy Call <Icon.ArrowRight className="w-3.5 h-3.5" />
+                Choose Custom <Icon.ArrowRight className="w-3.5 h-3.5" />
               </button>
             ) : (
               <button
@@ -193,7 +192,7 @@ const TierCard = ({
                   border: `1px solid ${accentColor}`,
                 }}
               >
-                Reserve Slot — €500 <Icon.ArrowRight className="w-3.5 h-3.5" />
+                Choose {tier.name} <Icon.ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
             <a
@@ -211,10 +210,8 @@ const TierCard = ({
 
 export const Offers = ({
   onReserve,
-  onCall,
 }: {
   onReserve: (id: string) => void;
-  onCall: () => void;
 }) => (
   <section id="offers" className="relative py-24 md:py-32 bg-app overflow-hidden">
     <div className="absolute inset-0 opacity-40">
@@ -233,14 +230,13 @@ export const Offers = ({
           <span className="block font-script grad-text-cm italic">work together.</span>
         </h2>
         <p className="text-2 mt-5 leading-relaxed font-editorial text-[1.1rem] max-w-[640px]">
-          Every tier secures with a <span className="text-1">€500 deposit</span>. Refundable within 7 days after the discovery questionnaire.
-          Credited to your final invoice.
+          Every package offers <span className="text-1">LUX or DELUXE</span>. Pay in full, 50/50, or four monthly payments. Sign your emailed offer before Stripe checkout.
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5 mt-10 md:mt-14">
         {TIERS.map((t) => (
-          <TierCard key={t.id} tier={t} onReserve={onReserve} onCall={onCall} />
+          <TierCard key={t.id} tier={t} onReserve={onReserve} />
         ))}
       </div>
 

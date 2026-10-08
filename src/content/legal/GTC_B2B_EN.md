@@ -43,7 +43,7 @@
 
 (1) The presentation of services on the Contractor's website (in particular the tier packages "Landing", "Business", "Store", "Web App") does not constitute a binding offer. It is an invitation to submit an offer by the Customer (invitatio ad offerendum).
 
-(2) By completing the multi-step order form and clicking "Submit & Pay", the Customer submits a binding contractual offer. The contract is concluded upon receipt of the Contractor's order confirmation or, in the case of payment via Stripe Checkout Session, at the latest upon successful posting of the deposit to the Contractor's account.
+(2) Submitting the order form using “Send My Offer” requests a personalized offer without taking payment. The offer states the scope, total including VAT and selected payment plan. The customer commissions the project by digitally signing the offer. Stripe then collects the first agreed payment.
 
 (3) For the "Custom" tier or for individual inquiries, the contract is concluded through a separate offer transmitted by the Contractor in text form and its acceptance by the Customer in text form.
 
@@ -55,7 +55,7 @@
 
 (2) The specific scope of services results from the tier level chosen by the Customer (Landing, Business, Store, Web App, Custom), the add-ons selected in the order form, and the work contract concluded between the parties. The tier descriptions and add-on specifications on the website are binding unless modified by the work contract or a written supplementary agreement.
 
-(3) Unless expressly agreed otherwise, exactly one revision round after submission of the completed work is included in the contract price. Further revision rounds will be charged separately based on effort.
+(3) Unless expressly agreed otherwise, the revision rounds stated in the signed offer after submission of the completed work is included in the contract price. Further revision rounds will be charged separately based on effort.
 
 (4) The Customer is obliged to provide all cooperative actions required for contract fulfillment in a timely manner, in particular:
 
@@ -70,15 +70,11 @@
 
 ## § 4 Remuneration, Payment Terms, Default
 
-(1) The remuneration is based on the tier level chosen by the Customer and the selected add-ons. The prices displayed on the website at the time of contract conclusion are binding. All prices are in Euros and include statutory VAT unless expressly stated otherwise.
+(1) The remuneration is based on the tier level chosen by the Customer and the selected add-ons. The signed offer states the binding total. The website displays net prices and corresponding gross totals including 19% VAT.
 
-(2) Payment is made in two installments:
+(2) The payment plan in the signed offer is binding: full payment after signing; 50% after signing and 50% after acceptance, before final handover; or four monthly payments without markup or automatic renewal. The exact gross amounts are stated in the offer. The first payment replaces a separate deposit. Publication requires payment of all amounts due at that time; final files and agreed ownership rights transfer after full payment.
 
-a) Deposit of 50% of the total price upon contract conclusion, due immediately and payable via Stripe Checkout (credit card or SEPA direct debit). The Contractor commences work after successful posting of this deposit.
-
-b) Final payment of 50% of the total price after acceptance of the work (cf. § 6), due within 7 calendar days after the Customer's written acceptance declaration or deemed acceptance pursuant to § 6 (4).
-
-(3) If the Customer has selected the rush surcharge ("Rush"), the correspondingly increased rate applies. The rush surcharge is added to the total price and proportionally distributed across both installments.
+(3) If the Customer has selected the rush surcharge ("Rush"), the correspondingly increased rate applies. The rush surcharge is added to the total price and included in the agreed payment plan.
 
 (4) Upon expiry of the payment period, the Customer falls into default without any reminder being required. The outstanding amount shall bear interest during the default at the applicable statutory default interest rate for transactions between entrepreneurs (§ 288 (2) BGB). The Contractor reserves the right to claim further damages caused by default.
 

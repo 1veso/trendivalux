@@ -1,201 +1,86 @@
 import type { PagesFunction } from '@cloudflare/workers-types';
 import { createStripeClient } from '../_shared/stripe-client';
 import { createAdminClient } from '../_shared/supabase-admin';
-import { computeDepositLineItems, isServerTier, type ServerTierId } from '../../src/config/pricing';
+import { checkoutReturnUrl, PAID_ORDER_STATUSES } from '../_shared/order-flow';
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '../_shared/rate-limit';
-import {
-  validateBoolean,
-  validateEmail,
-  validateEnum,
-  validatePlainObject,
-  validateString,
-  validateUuid,
-} from '../_shared/validation';
+import { validateUuid } from '../_shared/validation';
 import type { Env } from '../_shared/env';
-
-interface CheckoutRequest {
-  sessionId: string;
-  tier: string;
-  answers: Record<string, unknown>;
-  customerEmail?: string;
-  customerName?: string;
-  customerType?: 'b2b' | 'b2c';
-  acceptedWidereufWaiver?: boolean;
-}
+import { assertStripeKey, assertLiveObject, inclusiveVat } from '../_shared/stripe-payments';
+import { euro } from '../../src/config/payment-plans';
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const rateLimit = await checkRateLimit({
-    identifier: getClientIdentifier(request),
-    endpoint: 'create-checkout-session',
-    maxRequests: 5,
-    windowSeconds: 60,
-  });
-  if (!rateLimit.allowed) {
-    return rateLimitResponse(rateLimit.retryAfter ?? 60);
-  }
-
+  const limit = await checkRateLimit({ identifier: getClientIdentifier(request), endpoint: 'create-checkout-session', maxRequests: 35, windowSeconds: 60 });
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfter ?? 60);
   try {
-    const rawBody = (await request.json()) as Partial<CheckoutRequest>;
-
-    const sessionId = validateUuid(rawBody.sessionId);
-    if (!sessionId) {
-      return new Response('Invalid sessionId', { status: 400 });
+    const body = await request.json() as Record<string, unknown>;
+    const orderId = validateUuid(body.orderId);
+    const token = validateUuid(body.token);
+    if (!orderId || !token) return new Response('Invalid checkout link', { status: 400 });
+    const supabase = createAdminClient(env);
+    const { data: order, error } = await supabase.from('orders').select('*').eq('id', orderId).eq('checkout_token', token).single();
+    if (error || !order) return new Response('Order not found', { status: 404 });
+    const balance = body.stage === 'balance';
+    if (balance && (order.payment_plan !== 'split' || !PAID_ORDER_STATUSES.has(order.status))) return new Response('Balance not payable', { status: 409 });
+    const amount = balance ? order.total_price_cents - order.paid_amount_cents : order.deposit_amount_cents;
+    if ((PAID_ORDER_STATUSES.has(order.status) && !balance) || (balance && amount === 0)) {
+      return Response.json({ successUrl: `${env.SITE_URL.replace(/\/$/, '')}/success?order_id=${order.id}&token=${token}${balance ? '&stage=balance' : ''}` });
     }
+    if (['cancelled', 'refunded'].includes(order.status)) return new Response('This order is no longer payable', { status: 409 });
 
-    const customerEmail = validateEmail(rawBody.customerEmail);
-    if (!customerEmail) {
-      return new Response('Invalid customer email', { status: 400 });
+    // The redirect can arrive before the signing webhook. Verify against the
+    // authenticated DocuSeal API instead of trusting the browser or blocking a
+    // signed customer indefinitely if webhook delivery is delayed.
+    if (order.contract_status !== 'signed') {
+      if (!order.contract_docuseal_id) return new Response('Agreement not ready', { status: 409 });
+      const response = await fetch(`${env.DOCUSEAL_API_URL.replace(/\/$/, '')}/submissions/${encodeURIComponent(order.contract_docuseal_id)}`, {
+        headers: { 'X-Auth-Token': env.DOCUSEAL_API_KEY, Accept: 'application/json' },
+      });
+      if (!response.ok) return new Response('Could not verify signature', { status: 503 });
+      const submission = await response.json() as { submitters?: Array<{ external_id?: string; status?: string; completed_at?: string }> };
+      const signer = submission.submitters?.find(s => s.external_id === order.id);
+      if (signer?.status !== 'completed') return Response.json({ pendingSignature: true }, { status: 409 });
+      const { error: signedError } = await supabase.from('orders').update({
+        status: 'contract_signed', contract_status: 'signed', contract_signed_at: signer.completed_at || new Date().toISOString(),
+      }).eq('id', order.id).in('status', ['created', 'contract_sent', 'contract_signed']);
+      if (signedError) throw new Error('Could not record signature');
     }
-
-    // customerName is optional; if present it must be a clean string ≤200 chars.
-    let customerName: string | null = null;
-    if (rawBody.customerName !== undefined && rawBody.customerName !== null && rawBody.customerName !== '') {
-      customerName = validateString(rawBody.customerName, 200);
-      if (!customerName) {
-        return new Response('Invalid customer name', { status: 400 });
+    if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Invalid signed payment');
+    assertStripeKey(env);
+    const stripe = createStripeClient(env.STRIPE_SECRET_KEY);
+    const previousSession = (balance ? order.stripe_balance_session_id : order.stripe_session_id) as string | null;
+    if (previousSession) {
+      const existing = await stripe.checkout.sessions.retrieve(previousSession);
+      assertLiveObject(env, existing);
+      if (existing.status === 'open' && existing.url) return Response.json({ checkoutUrl: existing.url });
+      if (existing.status === 'complete' && order.status !== 'payment_failed') {
+        return Response.json({ successUrl: `${env.SITE_URL.replace(/\/$/, '')}/success?order_id=${order.id}&token=${token}${balance ? '&stage=balance' : ''}` });
       }
     }
-
-    const customerType = validateEnum(rawBody.customerType, ['b2b', 'b2c'] as const);
-    if (!customerType) {
-      return new Response('Missing or invalid customerType (must be "b2b" or "b2c")', { status: 400 });
-    }
-
-    // acceptedWidereufWaiver must be an actual boolean if present (we treat
-    // undefined as false). For B2C the gate below requires true.
-    const acceptedWidereufWaiver =
-      rawBody.acceptedWidereufWaiver === undefined ? false : validateBoolean(rawBody.acceptedWidereufWaiver);
-    if (acceptedWidereufWaiver === null) {
-      return new Response('Invalid acceptedWidereufWaiver (must be boolean)', { status: 400 });
-    }
-
-    // Statutorily required: B2C orders cannot proceed without an explicit
-    // Widerrufsrecht waiver. Client UI enforces this; the server is the safety net.
-    if (customerType === 'b2c' && !acceptedWidereufWaiver) {
-      return new Response('B2C orders require explicit acceptance of Widerrufsrecht waiver', { status: 400 });
-    }
-
-    const tier = rawBody.tier;
-    if (typeof tier !== 'string' || !isServerTier(tier)) {
-      // 'custom' tier and unknown tiers cannot run through Checkout. The client
-      // routes 'custom' to Cal.com instead of hitting this endpoint.
-      return new Response('Tier does not support direct checkout', { status: 400 });
-    }
-    const serverTier: ServerTierId = tier;
-
-    const answers = validatePlainObject(rawBody.answers);
-    if (!answers) {
-      return new Response('Invalid answers payload', { status: 400 });
-    }
-
-    // Extract addon selection from the questionnaire answers. Server is
-    // authoritative for pricing — we recompute from the source-of-truth in
-    // src/config/pricing.ts and ignore any client-supplied totals.
-    const addonIds = Array.isArray((answers as { addons?: unknown }).addons)
-      ? ((answers as { addons: unknown[] }).addons.filter((a) => typeof a === 'string') as string[])
-      : [];
-    const deadlineMode =
-      (((answers as { brief?: { deadline?: { mode?: unknown } } }).brief?.deadline?.mode) as string | undefined) ?? null;
-    const hasRush = deadlineMode === 'rush';
-
-    const computation = computeDepositLineItems(serverTier, addonIds, hasRush);
-
-    // Pre-create the order row using the recomputed totals so the webhook can
-    // reconcile and the founder kickoff email shows the actual amounts.
-    const { data: order, error: orderError } = await createAdminClient(env)
-      .from('orders')
-      .insert({
-        tier: serverTier,
-        total_price_cents: computation.totalSubtotalCents,
-        deposit_amount_cents: computation.totalDepositCents,
-        customer_email: customerEmail,
-        customer_name: customerName || null,
-        questionnaire_data: {
-          ...(answers as Record<string, unknown>),
-          customer_type: customerType,
-          widerruf_waiver_accepted: customerType === 'b2c' ? !!acceptedWidereufWaiver : false,
-          // Audit snapshot of what the server computed at checkout time.
-          server_computed: {
-            tier: serverTier,
-            addons_charged: computation.chargedAddonIds,
-            has_rush: hasRush,
-            total_subtotal_cents: computation.totalSubtotalCents,
-            total_deposit_cents: computation.totalDepositCents,
-            line_items: computation.lineItems.map((li) => ({
-              id: li.id,
-              name: li.name,
-              full_amount_cents: li.fullAmountCents,
-              unit_amount_cents: li.unitAmountCents,
-            })),
-            computed_at: new Date().toISOString(),
-          },
-        },
-        status: 'created',
-      })
-      .select('id')
-      .single();
-
-    if (orderError || !order) {
-      console.error('Order pre-create failed:', orderError);
-      return new Response(`Failed to create order: ${orderError?.message || 'unknown'}`, { status: 500 });
-    }
-
-    const stripe = createStripeClient(env.STRIPE_SECRET_KEY);
-
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card', 'sepa_debit'],
-      line_items: computation.lineItems.map((li) => ({
-        quantity: 1,
-        price_data: {
-          currency: 'eur',
-          unit_amount: li.unitAmountCents,
-          product_data: {
-            name: li.name,
-          },
-        },
-      })),
-      customer_email: customerEmail,
-      success_url: `${env.SITE_URL}/success?order_id=${order.id}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${env.SITE_URL}/?checkout_cancelled=true`,
-      metadata: {
-        order_id: order.id,
-        tier: serverTier,
-        questionnaire_session_id: sessionId,
-        customer_type: customerType,
-        widerruf_waiver_accepted: customerType === 'b2c' ? String(!!acceptedWidereufWaiver) : 'n/a',
-      },
-      payment_intent_data: {
-        metadata: {
-          order_id: order.id,
-          tier: serverTier,
-          customer_type: customerType,
-        },
-      },
-      locale: 'de',
-      submit_type: 'pay',
-      billing_address_collection: 'required',
-    });
-
-    const supabase = createAdminClient(env);
-    await supabase
-      .from('orders')
-      .update({ stripe_session_id: checkoutSession.id })
-      .eq('id', order.id);
-
-    await supabase
-      .from('questionnaires')
-      .update({ converted_to_order_id: order.id })
-      .eq('session_id', sessionId);
-
-    if (!checkoutSession.url) {
-      return new Response('Stripe did not return a checkout URL', { status: 500 });
-    }
-
-    return Response.json({ checkoutUrl: checkoutSession.url });
-  } catch (err) {
-    console.error('Checkout session error:', err);
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return new Response(`Internal error: ${message}`, { status: 500 });
+    const monthly = order.payment_plan === 'monthly4';
+    const tax = await inclusiveVat(stripe);
+    const checkout = await stripe.checkout.sessions.create({
+      mode: 'payment', payment_method_types: monthly ? ['card'] : ['card', 'sepa_debit'], customer_creation: 'always',
+      line_items: [{ quantity: 1, price_data: {
+        currency: 'eur', unit_amount: amount, tax_behavior: 'inclusive',
+        product_data: { name: `Trendiva Lux ${order.tier} ${order.service_level?.toUpperCase() || ''} — ${balance ? 'final balance' : monthly ? 'payment 1 of 4' : order.payment_plan === 'full' ? 'full payment' : '50% advance'}`, description: `Signed agreement ${order.id.slice(0, 8)}. Includes 19% VAT.` },
+      }, tax_rates: [tax] }],
+      customer_email: order.customer_email,
+      client_reference_id: order.id,
+      success_url: `${env.SITE_URL.replace(/\/$/, '')}/success?order_id=${order.id}&token=${token}${balance ? '&stage=balance' : ''}`,
+      cancel_url: `${checkoutReturnUrl(env, order)}${balance ? '&stage=balance' : ''}&cancelled=true`,
+      metadata: { order_id: order.id, tier: order.tier, stage: balance ? 'balance' : 'initial' },
+      invoice_creation: { enabled: true, invoice_data: { metadata: { order_id: order.id, stage: balance ? 'balance' : 'initial' } } },
+      payment_intent_data: { metadata: { order_id: order.id, tier: order.tier }, ...(monthly ? { setup_future_usage: 'off_session' as const } : {}) },
+      ...(monthly ? { custom_text: { submit: { message: `Four payments total: ${order.payment_schedule.map((value: number) => euro(value)).join(', ')} including VAT. The next three payments are collected monthly using this card. The plan ends automatically.` } } } : {}),
+      locale: 'de', submit_type: 'pay', billing_address_collection: 'required',
+    }, { idempotencyKey: `signed-order-${order.id}-${balance ? 'balance' : 'initial'}-${previousSession || 'new'}` });
+    assertLiveObject(env, checkout);
+    if (!checkout.url) throw new Error('Stripe returned no URL');
+    const { error: linkError } = await supabase.from('orders').update(balance ? { stripe_balance_session_id: checkout.id } : { stripe_session_id: checkout.id }).eq('id', order.id);
+    if (linkError) throw new Error('Could not link payment');
+    return Response.json({ checkoutUrl: checkout.url });
+  } catch (error) {
+    console.error('[checkout]', error);
+    return new Response('Could not open Stripe checkout. Please retry or contact hello@trendivalux.com.', { status: 500 });
   }
 };

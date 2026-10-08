@@ -2,120 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './Icons';
 import { Orbs } from './Atmosphere';
 
-const BUILDS = [
-  {
-    id: 'knzn',
-    title: 'KNZN',
-    subtitle: 'License-Plate Commerce',
-    label: 'COMMERCE / DÜREN',
-    url: 'https://knzn.pages.dev',
-    href: 'https://knzn.pages.dev',
-    blurb:
-      'A full-funnel German Zulassungsdienst commerce site with cinematic GSAP scroll, an embedded AI customer-service agent, and a Lottie stamp ceremony at checkout. €4,200+ first-month revenue.',
-    stack: ['Cloudflare', 'Stripe', 'Supabase', 'GSAP', 'Klaus AI'],
-    accentVar: 'var(--accent-2)',
-    posterGlyph: 'DN-TL · 1984',
-    posterMotif: 'plate',
-  },
-  {
-    id: 'aurion',
-    title: 'Aurion',
-    subtitle: 'Peptide Research Platform',
-    label: 'E-COMMERCE / LAB',
-    url: 'https://aurionlabs.shop',
-    href: 'https://aurionlabs.shop',
-    blurb:
-      'A 39-SKU peptide research storefront with COA transparency on every product, an AI compound-information chatbot, Stripe + Coinbase Commerce checkout, and DHL shipping API integration.',
-    stack: ['React 19', 'Vite', 'Supabase', 'Stripe', 'Coinbase', 'DHL'],
-    accentVar: 'var(--accent)',
-    posterGlyph: 'C₂₀H₃₂N₆O₅',
-    posterMotif: 'lab',
-  },
-  {
-    id: 'getautomata',
-    title: 'GetAutomata',
-    subtitle: 'AI Automation Services',
-    label: 'SISTER BRAND / SAAS',
-    url: 'https://getautomata.ai',
-    href: 'https://getautomata.ai',
-    blurb:
-      'Public-facing marketing landing built on the cinematic stack — converts visitors into automation clients while the dashboard delivers their workflows.',
-    stack: ['TypeScript', 'React', 'Workers', 'n8n', 'OpenRouter'],
-    accentVar: 'var(--accent)',
-    posterGlyph: 'AUTO/MATA · OS',
-    posterMotif: 'tron',
-  },
-  {
-    id: 'mission',
-    title: 'Mission Control',
-    subtitle: 'GetAutomata Dashboard',
-    label: 'DASHBOARD / PRIVATE',
-    url: 'https://go.getautomata.ai',
-    href: 'https://go.getautomata.ai',
-    blurb:
-      'The private agent-orchestration dashboard for GetAutomata clients — one design system, two products, end-to-end. Authenticated workflows, real-time runs, billing.',
-    stack: ['Supabase', 'Stripe', 'Cloudflare', 'OpenRouter'],
-    accentVar: 'var(--gold)',
-    posterGlyph: 'GO · MISSION/CTRL',
-    posterMotif: 'tron',
-  },
-  {
-    id: 'amboss',
-    title: 'Amboss Apparel',
-    subtitle: 'Protective Streetwear',
-    label: 'BRAND + STORE / DE',
-    url: 'https://ambossapparel.com',
-    href: 'https://ambossapparel.com',
-    blurb:
-      'A premium brand identity and storefront for an anti-stab protective apparel line — the intersection of fashion and personal safety, designed without compromise on either side.',
-    stack: ['Shopify', 'GSAP', '3D Asset Pipeline'],
-    accentVar: 'var(--accent-2)',
-    posterGlyph: 'AMBOSS · KEVLAR',
-    posterMotif: 'apparel',
-  },
-  {
-    id: 'importia',
-    title: 'Importia',
-    subtitle: 'Cinematic Visitenkarte',
-    label: 'IMPORT BRAND / DE',
-    url: 'https://importia.pages.dev',
-    href: 'https://importia.pages.dev',
-    blurb:
-      'A scroll-choreographed digital business card for an import brand — built on the cinematic-sites kit and deployed to Cloudflare Pages.',
-    stack: ['Cloudflare', 'GSAP', 'Lenis'],
-    accentVar: 'var(--accent)',
-    posterGlyph: 'IMPORTIA · V',
-    posterMotif: 'card',
-  },
-  {
-    id: 'imkarton',
-    title: 'Imkarton',
-    subtitle: 'Cinematic Visitenkarte',
-    label: 'PACKAGING / DE',
-    url: 'https://imkarton.pages.dev',
-    href: 'https://imkarton.pages.dev',
-    blurb:
-      "A sister Visitenkarte build to Importia — the same cinematic signature applied to a different brand category. Demonstrates the kit's tonal range.",
-    stack: ['Cloudflare', 'GSAP', 'Lenis'],
-    accentVar: 'var(--accent-2)',
-    posterGlyph: 'IMKARTON · PKG',
-    posterMotif: 'box',
-  },
-  {
-    id: 'noquito',
-    title: 'Noquito',
-    subtitle: 'Bilingual DE/EN Landing',
-    label: 'ANTI-MOSQUITO / B2C',
-    url: 'https://noquito.pages.dev',
-    href: 'https://noquito.pages.dev',
-    blurb:
-      'A cheeky, conversion-focused bilingual landing for a residential anti-mosquito screen brand. Demonstrates tonal range across the agency portfolio.',
-    stack: ['Cloudflare', 'i18n', 'Stripe'],
-    accentVar: 'var(--accent)',
-    posterGlyph: 'NOQUITO · DE/EN',
-    posterMotif: 'screen',
-  },
-];
+import { BUILDS } from '../config/builds';
 
 type Build = (typeof BUILDS)[number];
 
@@ -247,14 +134,12 @@ const GalleryCard = ({
   build,
   depth,
   distance,
-  onActivate,
   isCenter,
   hover,
 }: {
   build: Build;
   depth: number;
   distance: number;
-  onActivate: () => void;
   isCenter: boolean;
   hover: boolean;
 }) => {
@@ -271,7 +156,7 @@ const GalleryCard = ({
     <div
       className="absolute top-1/2 left-1/2 will-change-transform pointer-events-none"
       style={{
-        width: 'clamp(360px, 58vw, 760px)',
+        width: 'clamp(280px, 58vw, 760px)',
         height: 'clamp(260px, 42vw, 540px)',
         transform: `translate3d(calc(-50% + ${x}%), -50%, 0) perspective(1600px) rotateY(${angle}deg) translateZ(${z}px) scale(${scale})`,
         opacity,
@@ -283,15 +168,13 @@ const GalleryCard = ({
       }}
     >
       <a
-        href={build.href}
+        href={build.url}
+        aria-label={build.available ? `Open ${build.title}` : `${build.title} — live site temporarily unavailable`}
+
+        tabIndex={distance > 3 ? -1 : 0}
+        draggable={false}
         target="_blank"
-        rel="noreferrer"
-        onClick={(e) => {
-          if (!isCenter) {
-            e.preventDefault();
-            onActivate();
-          }
-        }}
+        rel="noopener noreferrer"
         className="block w-full h-full pointer-events-auto group"
         style={{
           transform: isCenter ? `translateY(${hover ? -10 : 0}px)` : 'none',
@@ -326,27 +209,22 @@ const GalleryCard = ({
             </div>
             <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-mut hidden md:flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--accent)' }} />
-              LIVE
+              {build.available ? (build.id === 'mission' ? 'LOGIN' : 'LIVE') : 'OFFLINE'}
             </div>
           </div>
 
           <div className="relative" style={{ height: 'calc(100% - 36px)' }}>
             <BrandPoster build={build} />
 
-            {distance < 1.5 && (
-              <iframe
-                src={build.url}
-                title={build.title}
+            {build.preview && (
+              <img
+                src={build.preview}
+                alt={`${build.title} website preview`}
                 loading="lazy"
-                referrerPolicy="no-referrer"
-                sandbox="allow-scripts allow-same-origin"
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  opacity: isCenter ? 1 : 0.85,
-                  transition: 'opacity 600ms ease',
-                }}
+                decoding="async"
+                draggable={false}
+                className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none"
+                onError={e => { e.currentTarget.style.visibility = 'hidden'; }}
               />
             )}
 
@@ -373,7 +251,7 @@ const GalleryCard = ({
                     background: `color-mix(in oklab, ${build.accentVar} 10%, transparent)`,
                   }}
                 >
-                  Open <Icon.ArrowUpRight className="w-3 h-3" />
+                  {build.available ? 'Open' : 'Visit site'} <Icon.ArrowUpRight className="w-3 h-3" />
                 </span>
               </div>
             </div>
@@ -455,7 +333,10 @@ const Gallery = () => {
   const [hover, setHover] = useState(false);
   const [auto, setAuto] = useState(true);
   const stageRef = useRef<HTMLDivElement>(null);
-  const dragStart = useRef<{ x: number; active: number } | null>(null);
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const didDrag = useRef(false);
+  const wheelDelta = useRef(0);
+  const wheelReset = useRef<number>();
 
   useEffect(() => {
     if (!auto || hover) return;
@@ -465,15 +346,18 @@ const Gallery = () => {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!stageRef.current) return;
+      if (!stageRef.current || !stageRef.current.contains(document.activeElement)) return;
+      if ((e.target as HTMLElement).closest('input, textarea, select')) return;
       const r = stageRef.current.getBoundingClientRect();
       const inView = r.top < window.innerHeight * 0.8 && r.bottom > 0;
       if (!inView) return;
       if (e.key === 'ArrowLeft') {
+        e.preventDefault();
         setActive((a) => (a - 1 + BUILDS.length) % BUILDS.length);
         setAuto(false);
       }
       if (e.key === 'ArrowRight') {
+        e.preventDefault();
         setActive((a) => (a + 1) % BUILDS.length);
         setAuto(false);
       }
@@ -482,24 +366,51 @@ const Gallery = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    dragStart.current = { x: e.clientX, active };
-    (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const onWheel = (event: WheelEvent) => {
+      // Horizontal trackpad gestures and Shift+wheel move the gallery.
+      // Regular vertical scrolling remains the page's own scroll.
+      if (!event.shiftKey && Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      setAuto(false);
+      const delta = event.shiftKey ? event.deltaY || event.deltaX : event.deltaX;
+      wheelDelta.current += delta * (event.deltaMode === 1 ? 16 : 1);
+      window.clearTimeout(wheelReset.current);
+      wheelReset.current = window.setTimeout(() => { wheelDelta.current = 0; }, 150);
+      if (Math.abs(wheelDelta.current) >= 70) {
+        const direction = wheelDelta.current > 0 ? 1 : -1;
+        setActive(a => (a + direction + BUILDS.length) % BUILDS.length);
+        wheelDelta.current = 0;
+      }
+    };
+    stage.addEventListener('wheel', onWheel, { passive: false });
+    return () => { stage.removeEventListener('wheel', onWheel); window.clearTimeout(wheelReset.current); };
+  }, []);
+
+  const onPointerDown = (event: React.PointerEvent) => {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
+    dragStart.current = { x: event.clientX, y: event.clientY };
+    didDrag.current = false;
     setAuto(false);
   };
-  const onPointerMove = (e: React.PointerEvent) => {
+  const onPointerMove = (event: React.PointerEvent) => {
     if (!dragStart.current) return;
-    const dx = e.clientX - dragStart.current.x;
+    const dx = event.clientX - dragStart.current.x;
+    const dy = event.clientY - dragStart.current.y;
+    if (!didDrag.current && (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy))) return;
+    didDrag.current = true;
+    // Capture only a real horizontal drag. Capturing on a normal click redirects
+    // the click to the stage, swallowing the website link.
+    event.currentTarget.setPointerCapture(event.pointerId);
     setDrag(dx);
   };
-  const onPointerUp = () => {
-    if (!dragStart.current) {
-      setDrag(0);
-      return;
+  const finishDrag = (cancel = false) => {
+    if (dragStart.current && didDrag.current && !cancel) {
+      if (drag > 60) setActive(a => (a - 1 + BUILDS.length) % BUILDS.length);
+      if (drag < -60) setActive(a => (a + 1) % BUILDS.length);
     }
-    const threshold = 90;
-    if (drag > threshold) setActive((a) => (a - 1 + BUILDS.length) % BUILDS.length);
-    if (drag < -threshold) setActive((a) => (a + 1) % BUILDS.length);
     dragStart.current = null;
     setDrag(0);
   };
@@ -522,12 +433,14 @@ const Gallery = () => {
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => {
           setHover(false);
-          onPointerUp();
+          finishDrag();
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerUp={() => finishDrag()}
+        onPointerCancel={() => finishDrag(true)}
+        onClickCapture={event => { if (didDrag.current) { event.preventDefault(); event.stopPropagation(); didDrag.current = false; } }}
+        role="region" aria-label="Portfolio gallery" tabIndex={0}
       >
         <div
           className="absolute inset-0 pointer-events-none"
@@ -548,10 +461,6 @@ const Gallery = () => {
               distance={Math.abs(d)}
               isCenter={Math.abs(d) < 0.5}
               hover={hover && Math.abs(d) < 0.5}
-              onActivate={() => {
-                setActive(i);
-                setAuto(false);
-              }}
             />
           );
         })}
@@ -562,7 +471,7 @@ const Gallery = () => {
             setAuto(false);
           }}
           aria-label="Previous build"
-          className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-50 grid place-items-center w-12 h-12 rounded-full border bd backdrop-blur-md hover:scale-110 transition"
+          className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-[200] grid place-items-center w-12 h-12 rounded-full border bd backdrop-blur-md hover:scale-110 transition"
           style={{ background: 'color-mix(in oklab, var(--bg) 60%, transparent)' }}
         >
           <Icon.ArrowRight className="w-5 h-5 text-1 rotate-180" />
@@ -573,7 +482,7 @@ const Gallery = () => {
             setAuto(false);
           }}
           aria-label="Next build"
-          className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-50 grid place-items-center w-12 h-12 rounded-full border bd backdrop-blur-md hover:scale-110 transition"
+          className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-[200] grid place-items-center w-12 h-12 rounded-full border bd backdrop-blur-md hover:scale-110 transition"
           style={{ background: 'color-mix(in oklab, var(--bg) 60%, transparent)' }}
         >
           <Icon.ArrowRight className="w-5 h-5 text-1" />
@@ -606,6 +515,7 @@ const Gallery = () => {
               setAuto(false);
             }}
             aria-label={`Go to ${b.title}`}
+            aria-pressed={i === active}
             className="group relative font-mono text-[10px] uppercase tracking-[0.22em] px-3 py-2 rounded transition"
             style={{
               color: i === active ? b.accentVar : 'var(--text-muted)',
@@ -637,7 +547,7 @@ const Gallery = () => {
           />
         </div>
         <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-mut shrink-0 hidden sm:inline">
-          Drag · Click · ←/→
+          Swipe · Shift + Scroll · ←/→
         </span>
       </div>
     </div>
@@ -662,7 +572,7 @@ export const Builds = () => (
           Eight signatures. <span className="font-script grad-text-cm">one stack.</span>
         </h2>
         <p className="text-2 mt-5 leading-relaxed">
-          Drag, swipe, or click any card to open the live site. Every build below ships on the same cinematic engine — from license-plate
+          Swipe, drag, or scroll horizontally through the gallery. Click a preview to open that exact site. Every build below ships on the same cinematic engine — from license-plate
           commerce to peptide research storefronts.
         </p>
       </div>

@@ -211,14 +211,15 @@ const useCarouselControl = (ref: React.RefObject<HTMLElement>, total: number) =>
     if (!el) return;
     const s = stateRef.current;
     const onKey = (e: KeyboardEvent) => {
-      const r = el.getBoundingClientRect();
-      const inView = r.top < window.innerHeight * 0.8 && r.bottom > 0;
-      if (!inView) return;
+      if (!el.contains(document.activeElement)) return;
+      if ((e.target as HTMLElement)?.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (e.key === 'ArrowLeft') {
+        e.preventDefault();
         s.target = Math.round((s.angle + stepDeg) / stepDeg) * stepDeg;
         s.lastInteraction = Date.now();
       }
       if (e.key === 'ArrowRight') {
+        e.preventDefault();
         s.target = Math.round((s.angle - stepDeg) / stepDeg) * stepDeg;
         s.lastInteraction = Date.now();
       }
@@ -443,6 +444,9 @@ const Carousel = ({ revealed, onActiveChange }: { revealed: boolean; onActiveCha
 
       <div
         ref={stageRef}
+        tabIndex={0}
+        role="region"
+        aria-label="Technology carousel"
         className="relative mx-auto"
         style={{
           width: '100%',

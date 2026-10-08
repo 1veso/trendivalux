@@ -16,12 +16,10 @@ import type { Env } from '../_shared/env';
 // bucket is missing, that file is recorded with url: null and processing
 // continues. One bad file never 500s the whole request.
 //
-// The human must create a `client-assets` bucket in Supabase Storage.
-// Make it public (or switch getPublicUrl → createSignedUrl for private).
-// Graceful fallback: if the bucket is absent, files are skipped and the
-// scoping form data still saves successfully.
+// Client files are private. Stored links resolve through the token-protected
+// project-file endpoint and expire five minutes after access.
 
-const ALLOWED_STATUSES = new Set(['contract_signed_deposit_paid', 'active', 'completed']);
+const ALLOWED_STATUSES = new Set(['paid', 'contract_signed_deposit_paid', 'active', 'completed']);
 
 const BUCKET = 'client-assets';
 
@@ -75,6 +73,7 @@ interface OrderRow {
   id: string;
   tier: string;
   status: string;
+  checkout_token: string | null;
   questionnaire_data: Record<string, unknown> | null;
 }
 
@@ -142,7 +141,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // ── Gate: order must exist and be in an allowed status ─────────────────────
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('id, tier, status, questionnaire_data')
+    .select('id, tier, status, checkout_token, questionnaire_data')
     .eq('id', orderId)
     .single();
 
@@ -151,6 +150,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   const orderRow = order as OrderRow;
+  if (orderRow.checkout_token && orderRow.checkout_token !== validateUuid(rawBody.token)) {
+    return Response.json({ saved: false, error: 'Order not found' }, { status: 404 });
+  }
   if (!ALLOWED_STATUSES.has(orderRow.status)) {
     return Response.json({ saved: false, error: 'Order not ready for scoping' }, { status: 403 });
   }
@@ -172,7 +174,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     }
   }
 
-  if (!questionnaire && sessionId) {
+  if (!questionnaire && sessionId && !orderRow.checkout_token) {
     const { data: q, error: qErr } = await supabase
       .from('questionnaires')
       .select('session_id, answers')
@@ -328,8 +330,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
           error: uploadError?.message ?? 'Upload failed',
         });
       } else {
-        const { data: pubData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
-        const url = pubData?.publicUrl ?? null;
+        const url = `${env.SITE_URL.replace(/\/$/, '')}/api/project-file?${new URLSearchParams({ order_id: orderId, token: order.checkout_token || '', path: storagePath })}`;
         uploaded.push({ filename: att.filename, category: att.category, url });
         totalDecodedBytes += exactBytes;
         fileCount++;
@@ -389,7 +390,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   // ── Mirror scoping onto orders.questionnaire_data (non-fatal) ──────────────
   const existingOrderQData = (orderRow.questionnaire_data ?? {}) as Record<string, unknown>;
-  supabase
+  await supabase
     .from('orders')
     .update({
       questionnaire_data: { ...existingOrderQData, scoping: mergedAnswers.scoping },
@@ -414,7 +415,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     console.error('[save-scoping] founder alert failed (non-fatal):', (mailErr as Error).message);
   }
 
-  return Response.json({ saved: true });
+  return Response.json({ saved: true, fileErrors: uploaded.filter(file => file.error).map(file => `${file.filename}: ${file.error}`) });
 };
 
 function escapeHtml(s: string): string {

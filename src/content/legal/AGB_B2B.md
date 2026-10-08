@@ -41,7 +41,7 @@
 
 (1) Die Darstellung der Leistungen auf der Website des Auftragnehmers (insbesondere die Tier-Pakete „Landing", „Business", „Store", „Web App") stellt kein verbindliches Angebot dar. Es handelt sich um eine Aufforderung zur Abgabe eines Angebots durch den Auftraggeber (invitatio ad offerendum).
 
-(2) Mit dem vollständigen Durchlaufen des mehrstufigen Bestellformulars und dem Klick auf „Submit & Pay" gibt der Auftraggeber ein verbindliches Vertragsangebot ab. Der Vertrag kommt mit Zugang der Auftragsbestätigung des Auftragnehmers oder, im Falle der Bezahlung über die Stripe Checkout Session, spätestens mit erfolgreicher Verbuchung der Anzahlung auf dem Konto des Auftragnehmers zustande.
+(2) Mit dem Absenden des Bestellformulars über „Send My Offer“ fordert der Auftraggeber ein persönliches Angebot an. Es erfolgt noch keine Zahlung. Der konkrete Auftrag und die ausgewählte Zahlungsweise werden im zugesandten Angebot festgehalten. Die Beauftragung erfolgt durch die digitale Unterzeichnung dieses Angebots; anschließend wird die vereinbarte erste Zahlung über Stripe Checkout geleistet.
 
 (3) Bei der Tier-Stufe „Custom" oder bei individuellen Anfragen kommt der Vertrag durch ein gesondert vom Auftragnehmer in Textform übermitteltes Angebot und dessen Annahme durch den Auftraggeber in Textform zustande.
 
@@ -53,7 +53,7 @@
 
 (2) Der konkrete Leistungsumfang ergibt sich aus der vom Auftraggeber gewählten Tier-Stufe (Landing, Business, Store, Web App, Custom), den im Bestellformular gewählten Add-Ons sowie dem zwischen den Parteien abgeschlossenen Werkvertrag. Die Tier-Beschreibungen und Add-On-Spezifikationen auf der Website sind verbindlich, soweit sie nicht durch den Werkvertrag oder eine schriftliche Zusatzvereinbarung modifiziert werden.
 
-(3) Sofern nicht ausdrücklich anders vereinbart, ist im Vertragspreis genau eine Revisionsrunde nach Vorlage des fertiggestellten Werks enthalten. Weitere Revisionsrunden werden gesondert nach Aufwand vergütet.
+(3) Sofern nicht ausdrücklich anders vereinbart, ist im Vertragspreis die im unterzeichneten Angebot genannten Revisionsrunden nach Vorlage des fertiggestellten Werks enthalten. Weitere Revisionsrunden werden gesondert nach Aufwand vergütet.
 
 (4) Der Auftraggeber ist verpflichtet, alle für die Vertragserfüllung erforderlichen Mitwirkungshandlungen rechtzeitig zu erbringen, insbesondere:
 
@@ -68,15 +68,19 @@
 
 ## § 4 Vergütung, Zahlungsbedingungen, Verzug
 
-(1) Die Vergütung richtet sich nach der vom Auftraggeber gewählten Tier-Stufe und den ausgewählten Add-Ons. Die zum Zeitpunkt des Vertragsschlusses auf der Website angezeigten Preise sind verbindlich. Alle Preise verstehen sich in Euro und enthalten die gesetzliche Umsatzsteuer, sofern nicht ausdrücklich anders ausgewiesen.
+(1) Die Vergütung richtet sich nach der vom Auftraggeber gewählten Tier-Stufe und den ausgewählten Add-Ons. Maßgeblich ist der Gesamtpreis im unterzeichneten Angebot. Die Website weist Nettopreise und die zugehörigen Bruttopreise einschließlich 19 % Umsatzsteuer aus.
 
-(2) Die Zahlung erfolgt in zwei Raten:
+(2) Die im unterzeichneten Angebot gewählte Zahlungsweise ist verbindlich:
 
-a) Anzahlung in Höhe von 50 % des Gesamtpreises bei Vertragsschluss, fällig sofort und zahlbar über Stripe Checkout (Kreditkarte oder SEPA-Lastschrift). Die Aufnahme der Arbeit durch den Auftragnehmer erfolgt nach erfolgreicher Verbuchung dieser Anzahlung.
+a) Vollzahlung: 100 % des Gesamtpreises einschließlich Umsatzsteuer nach Unterzeichnung.
 
-b) Restzahlung in Höhe von 50 % des Gesamtpreises nach Abnahme des Werks (vgl. § 6), fällig binnen 7 Kalendertagen nach schriftlicher Abnahmeerklärung des Auftraggebers oder fingierter Abnahme gemäß § 6 Abs. 4.
+b) Zwei Zahlungen: 50 % nach Unterzeichnung, die restlichen 50 % nach Abnahme und vor der endgültigen Projektübergabe.
 
-(3) Sofern der Auftraggeber den Eilzuschlag („Rush") gewählt hat, gilt der entsprechend erhöhte Tarif. Der Eilzuschlag wird auf den Gesamtpreis aufgeschlagen und auf beide Raten anteilig verteilt.
+c) Vier monatliche Zahlungen: erste Rate nach Unterzeichnung, drei weitere Raten monatlich. Die Cent-genauen Beträge ergeben sich aus dem Angebot. Es gibt keinen Ratenaufschlag und keine automatische Verlängerung. Fällige Raten müssen vor Veröffentlichung bezahlt sein; endgültige Projektdateien und vereinbarte Nutzungsrechte werden nach vollständiger Zahlung übertragen.
+
+Die erste Zahlung ersetzt eine gesonderte Anzahlung. Die Arbeiten beginnen nach bestätigtem Zahlungseingang und Bereitstellung der erforderlichen Inhalte und Zugänge.
+
+(3) Sofern der Auftraggeber den Eilzuschlag („Rush") gewählt hat, gilt der entsprechend erhöhte Tarif. Der Eilzuschlag wird auf den Gesamtpreis aufgeschlagen und im vereinbarten Zahlungsplan berücksichtigt.
 
 (4) Mit Ablauf der Zahlungsfrist gerät der Auftraggeber in Verzug, ohne dass es einer Mahnung bedarf. Der ausstehende Betrag ist während des Verzugs zum jeweils geltenden gesetzlichen Verzugszinssatz für Geschäfte zwischen Unternehmern (§ 288 Abs. 2 BGB) zu verzinsen. Der Auftragnehmer behält sich die Geltendmachung eines weitergehenden Verzugsschadens vor.
 
@@ -86,7 +90,7 @@ b) Restzahlung in Höhe von 50 % des Gesamtpreises nach Abnahme des Werks (vgl. 
 
 ## § 5 Lieferzeiten, Termine, Verzögerungen
 
-(1) Liefertermine und -fristen werden im Werkvertrag oder in der Auftragsbestätigung verbindlich festgelegt. Sie beginnen mit dem Datum der erfolgreichen Verbuchung der Anzahlung gemäß § 4 Abs. 2 lit. a, jedoch nicht vor vollständiger Bereitstellung der für die Vertragserfüllung erforderlichen Mitwirkungsleistungen des Auftraggebers gemäß § 3 Abs. 4.
+(1) Liefertermine und -fristen werden im Werkvertrag oder in der Auftragsbestätigung verbindlich festgelegt. Sie beginnen mit dem Datum der erfolgreichen Verbuchung der ersten vereinbarten Zahlung gemäß § 4 Abs. 2, jedoch nicht vor vollständiger Bereitstellung der für die Vertragserfüllung erforderlichen Mitwirkungsleistungen des Auftraggebers gemäß § 3 Abs. 4.
 
 (2) Die jeweils tier-spezifischen Standardlieferzeiten sind:
 

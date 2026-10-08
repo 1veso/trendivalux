@@ -12,7 +12,6 @@ import { ExitIntentModal } from './ExitIntentModal';
 import { CookieBanner } from './CookieBanner';
 
 const OrderModal = lazy(() => import('./OrderModal').then((m) => ({ default: m.OrderModal })));
-import { bookStrategyCall } from '../lib/order-modal';
 import { captureWaitlistEmail, captureSiteAuditLead } from '../lib/email-capture';
 import { useExitIntent } from '../hooks/useExitIntent';
 import { trackEvent } from '../lib/analytics';
@@ -25,10 +24,6 @@ declare global {
     openContactModal?: () => void;
   }
 }
-
-const handleBookStrategyCall = () => {
-  bookStrategyCall();
-};
 
 const handleWaitlistSignup = async (email: string) => {
   const result = await captureWaitlistEmail(email);
@@ -141,7 +136,7 @@ export default function TrendivaLuxLanding() {
         <Builds />
       </Reveal>
       <Reveal>
-        <Offers onReserve={openOrder} onCall={handleBookStrategyCall} />
+        <Offers onReserve={openOrder} />
       </Reveal>
       <Reveal>
         <Process />

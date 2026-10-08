@@ -1,48 +1,42 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { clearSessionId } from '../lib/order-modal';
 import SEO from '../components/SEO';
 
-const PAID_STATUSES = new Set(['paid', 'contract_sent', 'active', 'completed']);
 
 export default function SuccessPage() {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('order_id');
+  const token = searchParams.get('token');
+  const stage = searchParams.get('stage');
+  const [scopingUrl, setScopingUrl] = useState<string | null>(null);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [pollExhausted, setPollExhausted] = useState(false);
 
   useEffect(() => {
-    if (!orderId) return;
-
+    setOrderConfirmed(false); setPollExhausted(false); setScopingUrl(null);
+    if (!orderId || !token) { setPollExhausted(true); return; }
     let cancelled = false;
+    let timer: number | undefined;
     let attempts = 0;
-    const maxAttempts = 30; // ~60s
-
-    const poll = async () => {
+    const controller = new AbortController();
+    async function poll() {
       attempts += 1;
-      const { data } = await supabase
-        .from('orders')
-        .select('status')
-        .eq('id', orderId)
-        .single();
-
-      if (cancelled) return;
-      if (data && PAID_STATUSES.has(data.status as string)) {
-        setOrderConfirmed(true);
-        return;
-      }
-      if (attempts >= maxAttempts) {
-        setPollExhausted(true);
-        return;
-      }
-      window.setTimeout(poll, 2000);
-    };
-
-    poll();
-    return () => {
-      cancelled = true;
-    };
-  }, [orderId]);
+      try {
+        const response = await fetch(`/api/order-status?order_id=${encodeURIComponent(orderId!)}&token=${encodeURIComponent(token!)}&stage=${encodeURIComponent(stage || '')}`, { signal: controller.signal });
+        const data = response.ok ? await response.json() : null;
+        if (cancelled) return;
+        if (data?.confirmed && data.scopingUrl) {
+          setOrderConfirmed(true); setScopingUrl(data.scopingUrl); clearSessionId(); return;
+        }
+        if (data?.stopped || response.status === 400 || response.status === 404) { setPollExhausted(true); return; }
+      } catch { if (cancelled) return; }
+      if (attempts >= 30) { setPollExhausted(true); return; }
+      timer = window.setTimeout(poll, 2000);
+    }
+    void poll();
+    return () => { cancelled = true; controller.abort(); window.clearTimeout(timer); };
+  }, [orderId, token, stage]);
 
   return (
     <div className="min-h-screen grid place-items-center px-4 sm:px-6 py-10 sm:p-8" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
@@ -67,8 +61,17 @@ export default function SuccessPage() {
           </span>
         </h1>
         <p className="text-base sm:text-xl text-2 mt-5 sm:mt-6 leading-relaxed">
-          Your deposit is in. The service agreement is on its way to your inbox along with the discovery call link. Work begins within 24 hours.
+          {orderConfirmed
+            ? 'Your payment is confirmed and your signed agreement is saved. Complete your project brief to get your build started.'
+            : 'We are waiting for Stripe to confirm your payment. Bank payments can take longer to clear. Your project brief opens once payment is confirmed.'}
         </p>
+
+        {orderConfirmed && scopingUrl && (
+          <a href={scopingUrl} className="inline-flex mt-8 px-6 py-3 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em]" style={{ background: 'var(--gold)', color: '#000' }}>
+            Complete Your Project Brief →
+          </a>
+        )}
+        <a href="/" className="block mt-6 text-sm text-2 underline">Back to home</a>
 
         {orderId && (
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut mt-8">
@@ -78,7 +81,7 @@ export default function SuccessPage() {
 
         {pollExhausted && !orderConfirmed && (
           <p className="text-2 text-sm mt-6 max-w-md mx-auto">
-            We're still confirming your payment with Stripe. If you don't receive an email within five minutes, reply to the receipt or contact{' '}
+            We're still confirming your payment with Stripe. You can refresh this page to check again, or contact{' '}
             <a href="mailto:hello@trendivalux.com" style={{ color: 'var(--accent)' }} className="underline">
               hello@trendivalux.com
             </a>

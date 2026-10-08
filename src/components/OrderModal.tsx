@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from './Icons';
 import {
-  bookStrategyCall,
   getOrCreateSessionId,
-  saveQuestionnaireStep,
   startContractFlow,
   type ServerTier,
 } from '../lib/order-modal';
@@ -11,6 +9,7 @@ import {
   TIER_BASE_EUR,
   TIER_NAMES,
 } from '../config/pricing';
+import { priceBreakdown, euro, PAYMENT_PLAN_LABELS } from '../config/payment-plans';
 import { trackEvent } from '../lib/analytics';
 
 // Display-shape constants for the OrderModal. Prices come from src/config/pricing.ts
@@ -26,7 +25,7 @@ export const TIER_PRICING: Record<string, any> = {
 
 export const STEPS = [
   { id: 'tier', title: 'Choose your build', sub: 'You can switch this anytime — pricing updates live.' },
-  { id: 'contact', title: 'Your details', sub: 'Name and email to generate your contract. Sign & pay 50% next.' },
+  { id: 'contact', title: 'Your details', sub: 'Review your tailored agreement, sign digitally, then pay using your selected plan securely with Stripe.' },
 ];
 
 const FieldLabel = ({ children, optional }: { children: any; optional?: boolean }) => (
@@ -53,6 +52,7 @@ const TextInput = ({
   const Tag: any = multiline ? 'textarea' : 'input';
   return (
     <Tag
+      aria-label={placeholder}
       value={value}
       onChange={(e: any) => onChange(e.target.value)}
       placeholder={placeholder}
@@ -110,23 +110,25 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [submitted, setSubmitted] = useState(false);
-  const [orderId, setOrderId] = useState('');
-  // Session ID is set once on mount via lazy initializer and never regenerated.
+    // Session ID is set once on mount via lazy initializer and never regenerated.
   // getOrCreateSessionId() now persists to localStorage so reopening the modal
   // reuses the same questionnaire row rather than orphaning a new one.
   const [sessionId] = useState<string>(() => getOrCreateSessionId());
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const dataRef = useRef<any>(null);
 
   const [data, setData] = useState<any>({
     tier: initialTier,
+    service_level: null, payment_plan: null, project_details: '',
     name: '',
     email: '',
     customer_type: null as 'b2b' | 'b2c' | null,
   });
 
-  const set = (k: string, v: any) => setData((d: any) => ({ ...d, [k]: typeof v === 'function' ? v(d[k]) : v }));
+  const [signingUrl, setSigningUrl] = useState<string | null>(null);
+  const [quoteRequested, setQuoteRequested] = useState(false);
+
+  const set = (k: string, v: any) => { setSubmitError(null); setData((d: any) => ({ ...d, [k]: typeof v === 'function' ? v(d[k]) : v })); };
 
   // Track customer type selection for analytics.
   useEffect(() => {
@@ -148,17 +150,6 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Debounced save-on-blur: persist the questionnaire ~700ms after any field change.
-  // We track data via a ref to avoid effect churn on the entire object reference.
-  dataRef.current = data;
-  useEffect(() => {
-    if (!open) return;
-    const timeout = window.setTimeout(() => {
-      saveQuestionnaireStep(sessionId, data.tier, step + 1, dataRef.current).catch(() => {});
-    }, 700);
-    return () => window.clearTimeout(timeout);
-  }, [data, step, sessionId, open]);
-
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -174,10 +165,12 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
 
   const totals = deriveTotals({ tierId: data.tier });
   const isCustom = totals.tier.isCustom;
+  const needsQuote = isCustom || data.service_level === 'deluxe';
+  const price = priceBreakdown(totals.base * 100, data.payment_plan || 'split');
 
   const validateStep = () => {
     switch (STEPS[step].id) {
-      case 'tier': return !!data.tier;
+      case 'tier': return !!data.tier && !!data.service_level && !!data.payment_plan;
       case 'contact': {
         return !!(
           data.name.trim() &&
@@ -202,7 +195,7 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
   };
 
   const submit = async () => {
-    if (submitting) return;
+    if (submitting || !validateStep()) return;
     setSubmitError(null);
 
     const answers = {
@@ -211,24 +204,10 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
       customer_type: data.customer_type,
     };
 
-    if (data.tier === 'custom') {
-      // Custom tier does not flow through contract signing. Capture the brief and
-      // hand off to a strategy call.
-      try {
-        await saveQuestionnaireStep(sessionId, data.tier, STEPS.length, answers);
-      } catch {
-        // Best-effort save; continue to booking either way.
-      }
-      bookStrategyCall();
-      setOrderId('CUSTOM-PENDING');
-      setSubmitted(true);
-      return;
-    }
-
     setSubmitting(true);
     const result = await startContractFlow({
       sessionId,
-      tier: data.tier as ServerTier,
+      tier: data.tier, serviceLevel: data.service_level, paymentPlan: data.payment_plan, projectDetails: data.project_details,
       answers,
       customerEmail: data.email,
       customerName: data.name,
@@ -242,7 +221,10 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
     }
 
     trackEvent('Contract Initiated', { tier: data.tier });
-    window.location.href = result.signingUrl;
+    setSigningUrl(result.signingUrl || null);
+    setQuoteRequested(!!result.quoteRequested);
+    setSubmitted(true);
+    setSubmitting(false);
   };
 
   if (!open) return null;
@@ -250,7 +232,7 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
   const progressPct = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Order your website">
       <div
         className="absolute inset-0 backdrop-blur-md transition-opacity"
         style={{ background: 'color-mix(in oklab, var(--bg) 78%, transparent)' }}
@@ -321,6 +303,22 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                       <TierCardMini key={t.id} t={t} active={data.tier === t.id} onClick={(id) => set('tier', id)} />
                     ))}
                   </div>
+                  <div className="mt-6"><FieldLabel>Service level</FieldLabel>
+                    <div className="grid grid-cols-2 gap-3">
+                      {(['lux', 'deluxe'] as const).map(level => <button key={level} type="button" aria-pressed={data.service_level === level} onClick={() => set('service_level', level)} className="text-left p-4 rounded-xl border bd transition" style={{ borderColor: data.service_level === level ? 'var(--accent)' : 'var(--border)', background: 'var(--surface-2)' }}>
+                        <span className="font-display font-bold text-1">{level.toUpperCase()}</span><span className="block text-2 text-sm mt-1">{level === 'lux' ? 'The selected package scope' : 'Expanded scope · reviewed quote'}</span>
+                      </button>)}
+                    </div>
+                  </div>
+                  <div className="mt-6"><FieldLabel>Payment preference</FieldLabel>
+                    <div className="grid gap-2">
+                      {(['full', 'split', 'monthly4'] as const).map(plan => <button key={plan} type="button" aria-pressed={data.payment_plan === plan} onClick={() => set('payment_plan', plan)} className="text-left p-3 rounded-lg border bd transition" style={{ borderColor: data.payment_plan === plan ? 'var(--accent)' : 'var(--border)', background: 'var(--surface-2)' }}>
+                        <span className="text-1 text-sm font-semibold">{PAYMENT_PLAN_LABELS[plan]}</span>
+                        {!needsQuote && <span className="block text-2 text-xs mt-1">{plan === 'full' ? `${euro(price.grossCents)} after signing` : plan === 'split' ? `${euro(Math.round(price.grossCents / 2))} after signing, the balance before handover` : `${euro(Math.round(price.grossCents / 4))} first payment · final rate adjusts rounding cents`}</span>}
+                      </button>)}
+                    </div>
+                    <p className="text-2 text-xs mt-3">All due amounts include VAT. Four payments end automatically; this is a payment plan for your project.</p>
+                  </div>
                 </div>
               )}
 
@@ -382,11 +380,15 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                     </div>
                   </div>
 
-                  {/* Deposit summary — read-only informational line */}
-                  <div className="font-mono text-[11px] text-mut">
-                    {isCustom
-                      ? 'Custom — quoted after call'
-                      : `Today: €${totals.deposit.toLocaleString()} (50% deposit) · Balance €${totals.balance.toLocaleString()} on delivery`}
+                  <div><FieldLabel optional>Project details</FieldLabel><TextInput value={data.project_details} onChange={value => set('project_details', value)} placeholder="Your business, website and what you need" multiline max={2000} /></div>
+                  <div className="rounded-lg border bd p-4 text-sm text-2">
+                    {needsQuote ? <p>Your selected {data.tier} {data.service_level?.toUpperCase()} scope and price will be reviewed before the agreement is emailed.</p> : <>
+                      <p className="font-semibold text-1">Total {euro(price.grossCents)} including VAT</p>
+                      <p className="mt-1">{euro(price.netCents)} net + {euro(price.vatCents)} VAT (19%)</p>
+                      <p className="mt-2">First payment after signing: {euro(price.firstPaymentCents)}</p>
+                      <p className="mt-1">{data.payment_plan === 'monthly4' ? `Four rates: ${price.payments.map(euro).join(' / ')}. No renewal.` : data.payment_plan === 'split' ? `${euro(price.payments[1])} after approval, before final handover.` : 'Full project payment.'}</p>
+                    </>}
+                    <p className="mt-3">Next: check your email → sign the agreement → Stripe → project brief.</p>
                   </div>
                 </div>
               )}
@@ -404,14 +406,15 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
               >
                 <Icon.Check className="w-7 h-7 accent" />
               </div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.28em] accent">// STRATEGY CALL OPENING</div>
-              <h3 className="font-display font-bold text-3xl tracking-tight mt-2 text-1">Pick a time that works.</h3>
+              <div className="font-mono text-[10px] uppercase tracking-[0.28em] accent">// CHECK YOUR EMAIL</div>
+              <h3 className="font-display font-bold text-3xl tracking-tight mt-2 text-1">Your next step is in your inbox.</h3>
               <p className="text-2 mt-3 max-w-md mx-auto">
-                Your custom build needs a 30-minute discovery call to scope properly. We've opened the booking page in a new tab — pick a slot and we'll send a tailored quote within 24 hours.
+                {quoteRequested ? `We sent confirmation to ${data.email}. Primoz will review your scope and send your tailored agreement with the final price.` : `Your tailored offer and agreement have been sent to ${data.email}. Open the email, review the PDF and sign digitally. Stripe opens automatically after signing.`}
               </p>
               <div className="mt-7 inline-flex flex-col items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-mut">
-                <span>NEXT: BOOK CALL → CUSTOM QUOTE → CONTRACT</span>
+                <span>AGREEMENT → SIGNATURE → STRIPE → PROJECT BRIEF</span>
               </div>
+              {signingUrl && <a href={signingUrl} className="block mt-6 px-6 py-3 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em]" style={{ background: 'var(--gold)', color: '#000' }}>Open agreement now</a>}
               <button
                 onClick={onClose}
                 className="mt-7 px-6 py-3 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.2em]"
@@ -465,13 +468,11 @@ export const OrderModal = ({ open, onClose, initialTier = 'landing' }: { open: b
                     style={{ background: 'var(--gold)', color: '#000' }}
                   >
                     {submitting
-                      ? 'Preparing your contract…'
-                      : isCustom
-                      ? <>Book Strategy Call <Icon.ArrowRight className="w-3.5 h-3.5" /></>
-                      : <>Sign &amp; Pay 50% <Icon.ArrowRight className="w-3.5 h-3.5" /></>}
+                      ? 'Preparing your agreement…'
+                      : <>{needsQuote ? 'Request My Offer' : 'Send My Offer'} <Icon.ArrowRight className="w-3.5 h-3.5" /></>}
                   </button>
                   {submitError && (
-                    <span className="font-mono text-[10px] text-red-400 max-w-[260px] text-right">
+                    <span role="alert" className="font-mono text-[10px] text-red-400 max-w-[260px] text-right">
                       {submitError}
                     </span>
                   )}

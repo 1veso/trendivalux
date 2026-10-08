@@ -36,3 +36,6 @@ dist-ssr
 # Lighthouse audit artifacts (run locally, not committed)
 lighthouse-baseline.report.*
 lighthouse-final.report.*
+
+# Supabase CLI local state
+supabase/.temp/

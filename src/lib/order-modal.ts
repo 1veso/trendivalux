@@ -1,6 +1,6 @@
-import { supabase } from './supabase';
-
 export type QuestionnaireAnswers = Record<string, unknown>;
+import type { ServiceLevel, PaymentPlan } from '../config/payment-plans';
+
 export type ServerTier = 'landing' | 'business' | 'store' | 'webapp';
 
 const SESSION_KEY = 'tl_order_session_id';
@@ -27,29 +27,12 @@ export function clearSessionId(): void {
   }
 }
 
-export async function saveQuestionnaireStep(
-  sessionId: string,
-  tier: string,
-  step: number,
-  answers: QuestionnaireAnswers,
-): Promise<void> {
-  const { error } = await supabase.from('questionnaires').upsert({
-    session_id: sessionId,
-    tier,
-    current_step: step,
-    answers,
-    updated_at: new Date().toISOString(),
-  });
-
-  if (error) {
-    console.error('Failed to save questionnaire step:', error);
-    // Save-on-blur is best-effort. We do not throw or show UI errors.
-  }
-}
-
 export interface StartContractInput {
   sessionId: string;
-  tier: ServerTier;
+  tier: ServerTier | 'custom';
+  serviceLevel: ServiceLevel;
+  paymentPlan: PaymentPlan;
+  projectDetails: string;
   answers: QuestionnaireAnswers;
   customerEmail: string;
   customerName?: string;
@@ -58,35 +41,37 @@ export interface StartContractInput {
 
 export async function startContractFlow(
   input: StartContractInput,
-): Promise<{ signingUrl: string } | { error: string }> {
-  await supabase
-    .from('questionnaires')
-    .update({ completed: true, answers: input.answers })
-    .eq('session_id', input.sessionId);
-
+): Promise<{ signingUrl?: string; quoteRequested?: boolean } | { error: string }> {
+  try {
   const response = await fetch('/api/create-docuseal-contract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       sessionId: input.sessionId,
       tier: input.tier,
+      serviceLevel: input.serviceLevel, paymentPlan: input.paymentPlan, projectDetails: input.projectDetails,
       customerEmail: input.customerEmail,
       customerName: input.customerName ?? undefined,
       customerType: input.customerType,
+      answers: input.answers,
     }),
   });
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    return { error: text || `Request failed (${response.status})` };
+    return { error: response.status === 429 ? 'Please wait a minute before trying again.' : 'We could not prepare your agreement. Please retry or email hello@trendivalux.com.' };
   }
-  const data = (await response.json()) as { signingUrl?: string; error?: string };
-  if (data.signingUrl) {
-    return { signingUrl: data.signingUrl };
+  const data = (await response.json()) as { signingUrl?: string; quoteRequested?: boolean; error?: string };
+  if (data.signingUrl || data.quoteRequested) return { signingUrl: data.signingUrl, quoteRequested: data.quoteRequested };
+  return { error: data.error || 'We could not prepare your agreement. Please try again.' };
+  } catch {
+    return { error: 'Connection interrupted. Your details are still here — please try again.' };
   }
-  return { error: data.error || 'No signing URL returned' };
 }
 
 export function bookStrategyCall(): void {
-  const calcomUrl = import.meta.env.VITE_CALCOM_BOOKING_URL || 'https://cal.com/trendivalux/30min';
-  window.open(calcomUrl, '_blank', 'noopener,noreferrer');
+  const calcomUrl = import.meta.env.VITE_CALCOM_BOOKING_URL;
+  if (calcomUrl && /^https:\/\//.test(calcomUrl)) {
+    window.open(calcomUrl, '_blank', 'noopener,noreferrer');
+  } else {
+    window.openContactModal?.();
+  }
 }

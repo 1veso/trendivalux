@@ -10,12 +10,13 @@ import type { Env } from '../_shared/env';
 // Uses service-role client only — no order data is leaked to the caller beyond
 // { ready, tier, alreadySubmitted }.
 
-const ALLOWED_STATUSES = new Set(['contract_signed_deposit_paid', 'active', 'completed']);
+const ALLOWED_STATUSES = new Set(['paid', 'contract_signed_deposit_paid', 'active', 'completed']);
 
 interface OrderRow {
   id: string;
   tier: string;
   status: string;
+  checkout_token: string | null;
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
@@ -38,7 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, tier, status')
+      .select('id, tier, status, checkout_token')
       .eq('id', orderId)
       .single();
 
@@ -47,6 +48,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     }
 
     const orderRow = order as OrderRow;
+    if (orderRow.checkout_token && orderRow.checkout_token !== validateUuid(url.searchParams.get('token'))) {
+      return Response.json({ ready: false }, { status: 404 });
+    }
 
     // Check whether the linked questionnaire already has scoping answers.
     // Resolved via converted_to_order_id — works cross-device.
@@ -59,7 +63,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const answers = (questionnaire?.answers as Record<string, unknown>) ?? {};
     const alreadySubmitted = typeof answers.scoping === 'object' && answers.scoping !== null;
 
-    return Response.json({ ready: true, tier: orderRow.tier, alreadySubmitted });
+    return Response.json({ ready: true, tier: orderRow.tier, alreadySubmitted }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err) {
     console.error('[scoping-context] error:', err);
     return new Response('Internal error', { status: 500 });

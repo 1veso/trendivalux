@@ -1,49 +1,17 @@
-import { supabase } from './supabase';
+interface CaptureResult { success: boolean; error?: string }
 
-// 23505 = unique_violation. We treat duplicate signups as a successful "you're
-// already on the list" outcome — same UX as a fresh signup, no error noise.
-const UNIQUE_VIOLATION = '23505';
-
-interface CaptureResult {
-  success: boolean;
-  error?: string;
+async function capture(email: string, kind: 'waitlist' | 'audit'): Promise<CaptureResult> {
+  try {
+    const response = await fetch('/api/capture-lead', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), kind }),
+    });
+    return response.ok ? { success: true } : {
+      success: false,
+      error: response.status === 429 ? 'Please wait a minute before trying again.' : 'Could not save your email. Please try again.',
+    };
+  } catch { return { success: false, error: 'Connection interrupted. Please try again.' }; }
 }
 
-function normalizeEmail(email: string): string | null {
-  if (!email) return null;
-  const trimmed = email.trim().toLowerCase();
-  if (!trimmed.includes('@') || trimmed.length < 4) return null;
-  return trimmed;
-}
-
-export async function captureWaitlistEmail(email: string): Promise<CaptureResult> {
-  const normalized = normalizeEmail(email);
-  if (!normalized) return { success: false, error: 'Invalid email address' };
-
-  const { error } = await supabase
-    .from('waitlist')
-    .insert({ email: normalized, source: 'final_cta' });
-
-  if (error && error.code === UNIQUE_VIOLATION) return { success: true };
-  if (error) {
-    console.error('Waitlist insert failed:', error);
-    return { success: false, error: 'Failed to save email. Please try again.' };
-  }
-  return { success: true };
-}
-
-export async function captureSiteAuditLead(email: string): Promise<CaptureResult> {
-  const normalized = normalizeEmail(email);
-  if (!normalized) return { success: false, error: 'Invalid email address' };
-
-  const { error } = await supabase
-    .from('site_audit_leads')
-    .insert({ email: normalized, source: 'exit_intent' });
-
-  if (error && error.code === UNIQUE_VIOLATION) return { success: true };
-  if (error) {
-    console.error('Site audit lead insert failed:', error);
-    return { success: false, error: 'Failed to save email. Please try again.' };
-  }
-  return { success: true };
-}
+export const captureWaitlistEmail = (email: string) => capture(email, 'waitlist');
+export const captureSiteAuditLead = (email: string) => capture(email, 'audit');

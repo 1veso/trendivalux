@@ -40,7 +40,7 @@
 
 (1) Die Darstellung der Leistungen auf der Website des Auftragnehmers stellt kein verbindliches Angebot dar, sondern eine Aufforderung zur Abgabe eines Angebots durch den Verbraucher (invitatio ad offerendum).
 
-(2) Mit dem vollständigen Durchlaufen des mehrstufigen Bestellformulars und dem Klick auf „Submit & Pay" gibt der Verbraucher ein verbindliches Vertragsangebot ab. Der Vertrag kommt mit Zugang der Auftragsbestätigung des Auftragnehmers oder spätestens mit erfolgreicher Verbuchung der Anzahlung auf dem Konto des Auftragnehmers zustande.
+(2) Über „Send My Offer“ fordert der Verbraucher zunächst ein persönliches Angebot an. Es erfolgt noch keine Zahlung. Das zugesandte Angebot enthält Leistungsumfang, Gesamtpreis einschließlich Umsatzsteuer und die gewählte Zahlungsweise. Die Beauftragung erfolgt durch die digitale Unterzeichnung des Angebots. Anschließend öffnet sich Stripe für die vereinbarte erste Zahlung.
 
 (3) Vor Abgabe der Bestellung wird der Verbraucher in besonderer Weise auf folgende Punkte hingewiesen und muss diesen ausdrücklich zustimmen:
 
@@ -61,7 +61,7 @@ Verbrauchern steht ein gesetzliches Widerrufsrecht zu. Einzelheiten zum Widerruf
 
 (1) Nach § 356 Abs. 4 BGB erlischt das Widerrufsrecht bei einem Vertrag zur Erbringung von Dienstleistungen, wenn der Auftragnehmer die Dienstleistung vollständig erbracht hat und mit der Ausführung der Dienstleistung erst begonnen hat, nachdem der Verbraucher dazu seine ausdrückliche Zustimmung gegeben hat und gleichzeitig seine Kenntnis davon bestätigt hat, dass er sein Widerrufsrecht bei vollständiger Vertragserfüllung durch den Auftragnehmer verliert.
 
-(2) Im Bestellformular des Auftragnehmers kann der Verbraucher durch Setzen einer entsprechenden Checkbox erklären:
+(2) Für einen Beginn vor Ablauf der Widerrufsfrist muss der Verbraucher folgende gesonderte ausdrückliche Erklärung abgeben:
 
 > „Ich verlange ausdrücklich, dass Trendiva Lux mit der Ausführung der bestellten Dienstleistung vor Ablauf der Widerrufsfrist beginnt. Mir ist bekannt, dass ich mein Widerrufsrecht bei vollständiger Vertragserfüllung durch Trendiva Lux verliere."
 
@@ -75,7 +75,7 @@ Verbrauchern steht ein gesetzliches Widerrufsrecht zu. Einzelheiten zum Widerruf
 
 (2) Der konkrete Leistungsumfang ergibt sich aus der vom Verbraucher gewählten Tier-Stufe (Landing, Business, Store, Web App, Custom), den im Bestellformular gewählten Add-Ons sowie dem zwischen den Parteien abgeschlossenen Werkvertrag.
 
-(3) Sofern nicht ausdrücklich anders vereinbart, ist im Vertragspreis genau eine Revisionsrunde enthalten. Weitere Revisionsrunden werden gesondert nach Aufwand vergütet.
+(3) Sofern nicht ausdrücklich anders vereinbart, ist im Vertragspreis die im unterzeichneten Angebot genannten Revisionsrunden enthalten. Weitere Revisionsrunden werden gesondert nach Aufwand vergütet.
 
 (4) Der Verbraucher ist verpflichtet, alle für die Vertragserfüllung erforderlichen Mitwirkungshandlungen rechtzeitig zu erbringen, insbesondere:
 
@@ -89,15 +89,11 @@ Verbrauchern steht ein gesetzliches Widerrufsrecht zu. Einzelheiten zum Widerruf
 
 ## § 6 Vergütung, Zahlungsbedingungen
 
-(1) Die Vergütung richtet sich nach der vom Verbraucher gewählten Tier-Stufe und den ausgewählten Add-Ons. Alle Preise auf der Website verstehen sich als Endpreise inklusive der gesetzlichen Umsatzsteuer.
+(1) Die Vergütung richtet sich nach der vom Verbraucher gewählten Tier-Stufe und den ausgewählten Add-Ons. Die Website zeigt Nettopreise und die entsprechenden Gesamtpreise einschließlich 19 % Umsatzsteuer. Für die Beauftragung gilt der im unterzeichneten Angebot ausdrücklich ausgewiesene Gesamtpreis.
 
-(2) Die Zahlung erfolgt in zwei Raten:
+(2) Der Verbraucher wählt im Angebot Vollzahlung, 50 % nach Unterzeichnung und 50 % nach Abnahme vor endgültiger Übergabe oder vier monatliche Zahlungen. Die vereinbarten Bruttopreise und Cent-genauen Raten stehen im Angebot. Die erste Rate wird nach Unterzeichnung über Stripe Checkout gezahlt. Bei vier monatlichen Zahlungen folgen genau drei weitere monatliche Raten ohne Aufpreis; der Zahlungsplan endet automatisch. Es handelt sich um keinen Wartungsvertrag. Eine zusätzliche Anzahlung wird nicht erhoben.
 
-a) Anzahlung in Höhe von 50 % des Gesamtpreises bei Vertragsschluss, fällig sofort und zahlbar über Stripe Checkout (Kreditkarte oder SEPA-Lastschrift).
-
-b) Restzahlung in Höhe von 50 % des Gesamtpreises nach Abnahme des Werks, fällig binnen 7 Kalendertagen nach schriftlicher Abnahmeerklärung des Verbrauchers oder fingierter Abnahme gemäß § 8 Abs. 4.
-
-(3) Die Aufnahme der Arbeit durch den Auftragnehmer erfolgt nach erfolgreicher Verbuchung der Anzahlung und nach ausdrücklicher Zustimmung des Verbrauchers zur vorzeitigen Vertragsausführung gemäß § 4 Abs. 2.
+(3) Die Aufnahme der Arbeit durch den Auftragnehmer erfolgt nach bestätigtem Eingang der ersten Zahlung und Bereitstellung der erforderlichen Inhalte und Zugänge. Bei Verbrauchern beginnt die Ausführung nach Ablauf der Widerrufsfrist, sofern keine gesonderte ausdrückliche Erklärung gemäß § 4 Abs. 2 vorliegt.
 
 (4) Der Auftragnehmer ist berechtigt, die Auslieferung des fertiggestellten Werks bis zur vollständigen Bezahlung der Restzahlung zurückzuhalten.
 

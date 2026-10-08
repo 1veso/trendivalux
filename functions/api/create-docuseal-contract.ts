@@ -1,212 +1,66 @@
 import type { PagesFunction } from '@cloudflare/workers-types';
 import { createAdminClient } from '../_shared/supabase-admin';
-import { computeDepositLineItems, isServerTier, type ServerTierId } from '../../src/config/pricing';
+import { TIER_BASE_EUR, TIER_NAMES } from '../../src/config/pricing';
+import { priceBreakdown, type ServiceLevel, type PaymentPlan } from '../../src/config/payment-plans';
+import { OFFER_DETAILS } from '../_shared/contract-offer';
+import { issueAgreement } from '../_shared/issue-agreement';
+import { sendQuoteRequest } from '../_shared/quote-request-email';
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '../_shared/rate-limit';
 import { validateEmail, validateEnum, validateString, validateUuid } from '../_shared/validation';
 import type { Env } from '../_shared/env';
 
-interface CreateDocuSealContractRequest {
-  sessionId?: unknown;
-  tier?: unknown;
-  customerEmail?: unknown;
-  customerName?: unknown;
-  customerType?: unknown;
-}
-
-interface DocuSealSubmitter {
-  id?: number;
-  submission_id?: number;
-  embed_src?: string;
-  [key: string]: unknown;
-}
-
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const rateLimit = await checkRateLimit({
-    identifier: getClientIdentifier(request),
-    endpoint: 'create-docuseal-contract',
-    maxRequests: 5,
-    windowSeconds: 60,
-  });
-  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfter ?? 60);
-
+  const limit = await checkRateLimit({ identifier: getClientIdentifier(request), endpoint: 'create-docuseal-contract', maxRequests: 5, windowSeconds: 60 });
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfter ?? 60);
   try {
-    const rawBody = (await request.json()) as CreateDocuSealContractRequest;
-
-    const sessionId = validateUuid(rawBody.sessionId as string | undefined);
-    if (!sessionId) return new Response('Invalid sessionId', { status: 400 });
-
-    const customerEmail = validateEmail(rawBody.customerEmail as string | undefined);
-    if (!customerEmail) return new Response('Invalid customer email', { status: 400 });
-
-    // customerName is optional; if present it must be a clean string ≤200 chars.
-    let customerName: string | null = null;
-    const rawName = rawBody.customerName;
-    if (rawName !== undefined && rawName !== null && rawName !== '') {
-      customerName = validateString(rawName as string, 200);
-      if (!customerName) return new Response('Invalid customer name', { status: 400 });
-    }
-
-    const customerType = validateEnum(rawBody.customerType as string | undefined, ['b2b', 'b2c'] as const);
-    if (!customerType) return new Response('Missing or invalid customerType', { status: 400 });
-
-    const rawTier = rawBody.tier;
-    if (typeof rawTier !== 'string' || !isServerTier(rawTier))
-      return new Response('Tier does not support contract flow', { status: 400 });
-    const serverTier: ServerTierId = rawTier;
-
-    // Server-authoritative pricing: no addons, no rush at contract creation time.
-    // The 50% deposit is always computed server-side — the client never supplies
-    // an amount.
-    const computation = computeDepositLineItems(serverTier, [], false);
-    const supabase = createAdminClient(env);
-
-    // Fetch questionnaire answers to store with the order so the founder kickoff
-    // email (sent from the DocuSeal webhook on completion) has full context.
-    const { data: questionnaire } = await supabase
-      .from('questionnaires')
-      .select('answers')
-      .eq('session_id', sessionId)
-      .single();
-    const questionnaireAnswers = (questionnaire?.answers as Record<string, unknown>) ?? {};
-
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        tier: serverTier,
-        total_price_cents: computation.totalSubtotalCents,
-        deposit_amount_cents: computation.totalDepositCents,
-        customer_email: customerEmail,
-        customer_name: customerName,
-        questionnaire_data: {
-          ...questionnaireAnswers,
-          customer_type: customerType,
-          server_computed: {
-            tier: serverTier,
-            addons_charged: computation.chargedAddonIds,
-            has_rush: false,
-            total_subtotal_cents: computation.totalSubtotalCents,
-            total_deposit_cents: computation.totalDepositCents,
-            line_items: computation.lineItems.map((li) => ({
-              id: li.id,
-              name: li.name,
-              full_amount_cents: li.fullAmountCents,
-              unit_amount_cents: li.unitAmountCents,
-            })),
-            computed_at: new Date().toISOString(),
-          },
+    const body = await request.json() as Record<string, unknown>;
+    const sessionId = validateUuid(body.sessionId);
+    const email = validateEmail(body.customerEmail);
+    const name = validateString(body.customerName, 200);
+    const customerType = validateEnum(body.customerType, ['b2b', 'b2c'] as const);
+    const tier = validateEnum(body.tier, ['landing', 'business', 'store', 'webapp', 'custom'] as const);
+    const level = validateEnum(body.serviceLevel, ['lux', 'deluxe'] as const);
+    const plan = validateEnum(body.paymentPlan, ['full', 'split', 'monthly4'] as const);
+    const goals = typeof body.projectDetails === 'string' ? body.projectDetails.trim() : '';
+    if (!sessionId || !email || !name || !customerType || !tier || !level || !plan || goals.length > 2000) return new Response('Invalid order details', { status: 400 });
+    const admin = createAdminClient(env);
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([sessionId, tier, level, plan, email, name, customerType, goals])));
+    const requestKey = Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join('');
+    const { data: existing, error: lookupError } = await admin.from('orders').select('*').eq('order_request_key', requestKey).maybeSingle();
+    if (lookupError) throw new Error('Could not check existing request');
+    let order = existing;
+    if (!order) {
+      const reviewedQuote = level === 'deluxe' || tier === 'custom';
+      const price = reviewedQuote ? null : priceBreakdown(TIER_BASE_EUR[tier as keyof typeof TIER_BASE_EUR] * 100, plan);
+      const details = tier === 'custom' ? null : OFFER_DETAILS[tier];
+      const { data, error } = await admin.from('orders').insert({
+        tier, service_level: level as ServiceLevel, payment_plan: plan as PaymentPlan,
+        total_price_cents: price?.grossCents ?? 0, deposit_amount_cents: price?.firstPaymentCents ?? 0,
+        net_amount_cents: price?.netCents ?? null, vat_amount_cents: price?.vatCents ?? null, payment_schedule: price?.payments ?? null,
+        customer_email: email, customer_name: name, checkout_token: crypto.randomUUID(), quote_review_token: crypto.randomUUID(),
+        offer_issued_at: price ? new Date().toISOString() : null,
+        order_request_key: requestKey, status: reviewedQuote ? 'quote_requested' : 'created',
+        questionnaire_data: { tier, service_level: level, payment_plan: plan, payment_flow: 'signed_offer_then_stripe',
+          client: { name, email }, customer_type: customerType, project_details: goals,
+          offer_scope: details ? [...details.deliverables, 'Zwei gebündelte Korrekturrunden', '30 Tage Startbegleitung im vereinbarten Umfang'] : [],
+          offer_timeline: details?.timeline ?? 'Nach gesonderter Vereinbarung',
         },
-        status: 'created',
-      })
-      .select('id')
-      .single();
-
-    if (orderError || !order) {
-      console.error('[create-docuseal-contract] Order insert failed:', orderError);
-      return new Response(`Failed to create order: ${orderError?.message || 'unknown'}`, { status: 500 });
+      }).select('*').single();
+      if (error || !data) return new Response('Order request is being prepared. Please retry in a moment.', { status: 409 });
+      order = data;
     }
-
-    const { error: linkError } = await supabase
-      .from('questionnaires')
-      .update({ converted_to_order_id: order.id })
-      .eq('session_id', sessionId);
-    if (linkError) {
-      // Non-fatal: the order still exists and the DocuSeal flow proceeds, but the
-      // questionnaire→order link (used by the scoping page) is broken. Log it.
-      console.warn('[create-docuseal-contract] failed to link questionnaire to order', {
-        sessionId,
-        orderId: order.id,
-        message: linkError.message,
-      });
+    if (['cancelled', 'refunded'].includes(order.status)) return new Response('This order is no longer active', { status: 409 });
+    const { error: questionnaireError } = await admin.from('questionnaires').upsert({ session_id: sessionId, tier, current_step: 2, answers: order.questionnaire_data, completed: true, converted_to_order_id: order.id });
+    if (questionnaireError) throw new Error('Could not save order details');
+    if (order.status === 'quote_requested') {
+      await sendQuoteRequest(env, order);
+      return Response.json({ quoteRequested: true, customerEmail: email });
     }
-
-    const rawTemplateId =
-      customerType === 'b2b' ? env.DOCUSEAL_TEMPLATE_ID_B2B : env.DOCUSEAL_TEMPLATE_ID_B2C;
-
-    if (!rawTemplateId) {
-      console.error('[create-docuseal-contract] template ID not configured for', customerType);
-      return new Response('Contract template not configured', { status: 500 });
-    }
-
-    const templateId = parseInt(rawTemplateId, 10);
-    if (isNaN(templateId)) {
-      console.error('[create-docuseal-contract] non-numeric template ID:', rawTemplateId);
-      return new Response('Invalid contract template configuration', { status: 500 });
-    }
-
-    const signerRole = env.DOCUSEAL_SIGNER_ROLE || 'Client';
-    const depositEur = computation.totalDepositCents / 100;
-
-    const submitterPayload: Record<string, unknown> = {
-      role: signerRole,
-      name: customerName || customerEmail,
-      email: customerEmail,
-      external_id: order.id,
-      metadata: {
-        order_id: order.id,
-        session_id: sessionId,
-        tier: serverTier,
-        customer_type: customerType,
-      },
-    };
-    if (env.DOCUSEAL_PAYMENT_FIELD_NAME) {
-      submitterPayload.values = { [env.DOCUSEAL_PAYMENT_FIELD_NAME]: depositEur };
-    } else {
-      // Without this env var the server-computed deposit never reaches DocuSeal's
-      // payment field — the contract would be created with a blank/zero amount.
-      // Warn loudly so a misconfigured deploy is diagnosable.
-      console.warn(
-        '[create-docuseal-contract] DOCUSEAL_PAYMENT_FIELD_NAME is not set — deposit amount not injected into the DocuSeal payment field. Set it or bake a fixed amount into the template.',
-      );
-    }
-
-    const docusealResponse = await fetch(`${env.DOCUSEAL_API_URL}/submissions`, {
-      method: 'POST',
-      headers: {
-        'X-Auth-Token': env.DOCUSEAL_API_KEY,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        template_id: templateId,
-        send_email: true,
-        // After signing + paying, DocuSeal redirects the signer to the
-        // post-payment scoping questionnaire. The order id in the path lets the
-        // page work cross-device (no reliance on the original browser's storage).
-        completed_redirect_url: `${env.SITE_URL}/scoping/${order.id}`,
-        submitters: [submitterPayload],
-      }),
-    });
-
-    if (!docusealResponse.ok) {
-      const errorText = await docusealResponse.text().catch(() => '');
-      console.error('[create-docuseal-contract] DocuSeal API error:', docusealResponse.status, errorText);
-      return new Response(`Contract service error: ${docusealResponse.status}`, { status: 502 });
-    }
-
-    const submitters = (await docusealResponse.json()) as DocuSealSubmitter[];
-    const firstSubmitter = Array.isArray(submitters) ? submitters[0] : undefined;
-    const signingUrl = firstSubmitter?.embed_src;
-
-    if (!signingUrl) {
-      console.error('[create-docuseal-contract] DocuSeal response missing embed_src', submitters);
-      return new Response('Contract service returned no signing URL', { status: 502 });
-    }
-
-    const submissionId = firstSubmitter?.submission_id;
-    await supabase
-      .from('orders')
-      .update({
-        contract_status: 'sent',
-        contract_docuseal_id: submissionId != null ? String(submissionId) : null,
-        contract_signing_url: signingUrl,
-        status: 'contract_sent',
-      })
-      .eq('id', order.id);
-
-    return Response.json({ signingUrl });
-  } catch (err) {
-    console.error('[create-docuseal-contract] error:', err);
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return new Response(`Internal error: ${message}`, { status: 500 });
+    if (order.contract_request_started_at && Date.now() - Date.parse(order.contract_request_started_at) < 120000) return new Response('Agreement is being prepared. Please retry shortly.', { status: 409 });
+    const result = await issueAgreement(env, order);
+    return Response.json({ ...result, customerEmail: email });
+  } catch (error) {
+    console.error('[contract]', error);
+    return new Response('Could not prepare your offer. Your details are saved; please retry or contact hello@trendivalux.com.', { status: 503 });
   }
 };
