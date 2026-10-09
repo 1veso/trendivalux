@@ -116,13 +116,14 @@ function lightWake(color: THREE.Color, index: number) {
 
 export function mountRiderScene(host: HTMLElement, onReady: (mode: 'webgl' | 'canvas') => void, onLost: () => void) {
   const canvas = document.createElement('canvas');
-  const context = canvas.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'low-power' });
+  let context: WebGL2RenderingContext | null = null;
+  try { context = canvas.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'low-power' }); } catch { /* Use the software renderer when WebGL is restricted. */ }
   const renderer = context ? new THREE.WebGLRenderer({ canvas, context, alpha: true, antialias: true }) : null;
   if (renderer) { renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace; }
   canvas.style.cssText = 'display:block;width:100%;height:100%;'; host.appendChild(canvas);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, .1, 180);
-  camera.position.set(0, 10.5, 25); camera.lookAt(0, .2, -5);
+  camera.position.set(0, 10.5, 25); camera.lookAt(0, .2, 6);
   const ambient = new THREE.HemisphereLight('#cceeff', '#261b45', 2.3); scene.add(ambient);
   const key = new THREE.DirectionalLight('#e0eeff', 4.2); key.position.set(-5, 9, 6); scene.add(key);
   const rim = new THREE.DirectionalLight('#ff9edc', 2.5); rim.position.set(7, 5, -9); scene.add(rim);
@@ -152,7 +153,7 @@ export function mountRiderScene(host: HTMLElement, onReady: (mode: 'webgl' | 'ca
       bike.tires.forEach(wheel => { wheel.rotation.x = -time * 3.3; }); if (renderer) wakes[index].update(time, routeScale);
     });
     grid.uniforms.time.value = time;
-    cameraX += (pointerX - cameraX) * .035; camera.position.x = cameraX; camera.lookAt(cameraX * .15, .2, -5);
+    cameraX += (pointerX - cameraX) * .035; camera.position.x = cameraX; camera.lookAt(cameraX * .15, .2, 6);
     if (renderer) renderer.render(scene, camera); else software.render(camera, time, routeScale);
     if (first) { first = false; onReady(renderer ? 'webgl' : 'canvas'); }
   }
@@ -165,6 +166,7 @@ export function mountRiderScene(host: HTMLElement, onReady: (mode: 'webgl' | 'ca
   function run() {
     last = 0; lastDraw = 0;
     const active = !disposed && !lost && visible && !document.hidden;
+    canvas.dataset.motion = active ? 'playing' : 'paused';
     if (renderer) renderer.setAnimationLoop(active ? frame : null);
     else { cancelAnimationFrame(raf); raf = 0; if (active) raf = requestAnimationFrame(softwareFrame); }
   }
@@ -186,7 +188,7 @@ export function mountRiderScene(host: HTMLElement, onReady: (mode: 'webgl' | 'ca
   }
   function move(event: PointerEvent) { if (finePointer.matches) pointerX = (event.clientX / window.innerWidth - .5) * 1.4; }
   function resetPointer() { pointerX = 0; }
-  function contextLost(event: Event) { event.preventDefault(); lost = true; renderer?.setAnimationLoop(null); cancelAnimationFrame(raf); onLost(); }
+  function contextLost(event: Event) { event.preventDefault(); lost = true; canvas.dataset.motion = 'paused'; renderer?.setAnimationLoop(null); cancelAnimationFrame(raf); onLost(); }
   const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(host);
   const visibilityObserver = new IntersectionObserver(entries => { visible = entries[0]?.isIntersecting ?? false; run(); }, { threshold: 0 }); visibilityObserver.observe(host);
   const themeObserver = new MutationObserver(theme); themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

@@ -14,14 +14,15 @@ export default function HeroRiders() {
     let disposed = false;
     let cleanup: (() => void) | undefined;
     let pending = false;
+    let failed = false;
     const start = async () => {
-      if (disposed || pending || cleanup || motion.matches) return;
+      if (disposed || pending || cleanup || failed || motion.matches) return;
       pending = true;
       try {
         const { mountRiderScene } = await import('./hero-riders/scene');
         if (disposed || motion.matches) return;
         cleanup = mountRiderScene(element, mode => { if (!disposed) setRenderer(mode); }, () => { if (!disposed) setRenderer('static'); });
-      } catch { if (!disposed) setRenderer('static'); }
+      } catch { failed = true; if (!disposed) setRenderer('static'); }
       finally { pending = false; }
     };
     const observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) void start(); }, { rootMargin: '150px' });
@@ -34,7 +35,7 @@ export default function HeroRiders() {
     return () => { disposed = true; observer.disconnect(); motion.removeEventListener('change', onMotion); cleanup?.(); };
   }, []);
 
-  return <div className="hero-riders absolute inset-x-0 bottom-[-5%] h-[44%] pointer-events-none" aria-hidden="true" data-renderer={renderer}>
+  return <div className="hero-riders absolute inset-x-0 bottom-[-2%] h-[54%] pointer-events-none" aria-hidden="true" data-renderer={renderer}>
     <div className="absolute inset-0" style={{ opacity: ready ? 0 : 1 }}>
       <div className="absolute inset-x-[-20%] top-[24%] bottom-[-30%]" style={{ transform: 'perspective(700px) rotateX(62deg)', transformOrigin: '50% 0%', backgroundImage: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 32%, transparent) 1px, transparent 1px), linear-gradient(color-mix(in srgb, var(--accent-2) 32%, transparent) 1px, transparent 1px)', backgroundSize: '64px 64px', maskImage: 'linear-gradient(transparent, #000 28%)' }} />
       <svg viewBox="0 0 1200 400" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" fill="none">
@@ -56,6 +57,6 @@ export default function HeroRiders() {
         </g>)}
       </svg>
     </div>
-    <div ref={host} className="absolute inset-0" style={{ opacity: ready ? 1 : 0, maskImage: 'linear-gradient(to bottom, transparent, #000 18%)' }} />
+    <div ref={host} className="absolute inset-0" style={{ opacity: ready ? 1 : 0, maskImage: 'linear-gradient(to bottom, transparent, transparent 12%, #000 22%)' }} />
   </div>;
 }
