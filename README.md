@@ -42,6 +42,23 @@ Required server configuration: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `STR
 
 Stripe webhook events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created`. DocuSeal webhook: `form.completed`, using its timestamped `X-Docuseal-Signature` HMAC. Configure the webhook destinations at `/api/stripe-webhook` and `/api/docuseal-webhook`.
 
+Production provider settings are saved in **Cloudflare → Workers & Pages → trendivalux → Settings → Variables and Secrets → Production**. Save the keys below, then redeploy production. Do not commit secrets or prefix them with `VITE_`.
+
+| Variable | Production value | Type |
+| --- | --- | --- |
+| `STRIPE_SECRET_KEY` | Live account `sk_live_…` key, or a suitably permitted `rk_live_…` key | Secret |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret for the live endpoint `https://trendivalux.com/api/stripe-webhook` | Secret |
+| `DOCUSEAL_API_KEY` | Production API key from the DocuSeal account with PDF API entitlement | Secret |
+| `DOCUSEAL_API_URL` | `https://api.docuseal.com` for Global, `https://api.docuseal.eu` for Europe; must match the key's account region | Text |
+| `DOCUSEAL_WEBHOOK_SECRET` | DocuSeal Console → Webhooks → Security → HMAC signing secret | Secret |
+| `SITE_URL` | `https://trendivalux.com` | Text |
+
+In **live Stripe Workbench → Webhooks → Add destination**, select **Your account**, snapshot events and API version `2026-04-22.dahlia`, subscribe to the seven events above, and use the production endpoint. Sandbox keys, CLI listener secrets and sandbox endpoint secrets do not replace the live endpoint's signing secret.
+
+In **DocuSeal Console → Webhooks**, create `https://trendivalux.com/api/docuseal-webhook` with `form.completed` and `submission.completed`. Open **Security → HMAC** and copy the signing secret into Cloudflare's `DOCUSEAL_WEBHOOK_SECRET`. The separate custom-header Secret tab does not supply the HMAC secret this handler verifies. Keep preview credentials and webhook destinations isolated from production.
+
+After redeployment, inspect `/commissioning`. It checks the live Stripe account, database and read-only DocuSeal API access, and reports each configured webhook secret separately. Before accepting customers, verify one authorized agreement email/PDF/signing flow, the signing redirect to Stripe, verified payment delivery, and access to the project brief only after payment. A DocuSeal agent plugin helps development; installing it does not configure the website's production secrets.
+
 The `/commissioning` operator page displays the read-only readiness check. `GET /api/health` checks database access, DocuSeal API connectivity and Stripe live mode plus charge availability. It returns no credentials or customer data. Connectivity does not prove PDF API entitlement, email delivery or configured provider webhook subscriptions; those need a commissioning run. Preview deployments should use their own environment bindings and `SITE_URL`.
 
 Baseline migrations already applied manually were reconciled with the remote history. Both new payment/privacy and private-flow index migrations are applied to production. Run future changes through tracked migrations. `pnpm test`, `pnpm typecheck` and `pnpm build` validate the flow without contacting providers, sending mail or charging customers.

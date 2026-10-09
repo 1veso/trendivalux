@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Lightcycles } from './Lightcycles';
+import HeroRiders from './HeroRiders';
 
 export const Orbs = ({ density = 1 }: { density?: number }) => (
   <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -491,8 +492,8 @@ export const DigitalSunset = ({
         />
       </div>
 
-      {/* L7 — neon grid floor + lightcycles minigame */}
-      <div
+      {/* L7 — hero riders share a real perspective floor; other sunsets retain their grid. */}
+      {id === 'hero-sunset' ? <HeroRiders /> : <div
         className="absolute inset-x-[-20%] bottom-[-5%] h-[44%]"
         style={{
           transform: `perspective(900px) rotateX(62deg) translateY(0)`,
@@ -519,7 +520,7 @@ export const DigitalSunset = ({
             filter: 'blur(8px)',
           }}
         />
-      </div>
+      </div>}
 
       {/* L8 — foreground dust motes */}
       <div className="absolute inset-0" style={{ ...depth(20) }}>

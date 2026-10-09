@@ -285,3 +285,33 @@ test('project files require an order token and use short-lived private URLs',asy
   const response=await get('project-file',query);assert.equal(response.status,302);assert.equal(response.headers.get('Cache-Control'),'no-store');
   assert.equal((await get('project-file',{...query,path:`orders/${sessionId}/brand/logo.png`})).status,400);
 });
+
+async function health(settings = {}) {
+  flow.stripe.accounts = { retrieve: async () => ({ charges_enabled: true }) };
+  flow.stripe.balance = { retrieve: async () => ({ livemode: true }) };
+  return handlers.health.onRequestGet({ env: { ...env, ...settings }, request: new Request('https://trendivalux.com/api/health', { headers: { 'CF-Connecting-IP': crypto.randomUUID() } }) });
+}
+test('commissioning identifies each missing webhook separately and never returns secret values', async () => {
+  const response = await health({ STRIPE_WEBHOOK_SECRET: '' });
+  const status = await response.json();
+  assert.equal(response.status, 503); assert.equal(status.ready, false);
+  assert.deepEqual(status.webhooks, { stripeConfigured: false, docusealConfigured: true });
+  assert.equal(status.agreementApiConnected, true); assert.equal(status.stripe.verified, true);
+  for (const secret of [env.STRIPE_SECRET_KEY, env.DOCUSEAL_API_KEY, env.DOCUSEAL_WEBHOOK_SECRET]) assert.equal(JSON.stringify(status).includes(secret), false);
+});
+test('commissioning distinguishes DocuSeal missing configuration, authentication errors and unreachable service', async () => {
+  let status = await (await health({ DOCUSEAL_API_KEY: '' })).json();
+  assert.equal(status.agreement.status, 'missing_configuration'); assert.equal(status.agreement.keyConfigured, false); assert.equal(status.ready, false);
+  globalThis.fetch = async () => new Response('Sensitive provider detail', { status: 403 });
+  status = await (await health()).json();
+  assert.equal(status.agreement.status, 'authentication_or_permission_error'); assert.equal(status.agreementApiConnected, false); assert.equal(status.ready, false);
+  assert.equal(JSON.stringify(status).includes('Sensitive provider detail'), false);
+  globalThis.fetch = async () => { throw new Error('Sensitive provider detail'); };
+  status = await (await health()).json();
+  assert.equal(status.agreement.status, 'unreachable_or_timeout'); assert.equal(status.ready, false);
+});
+test('commissioning refuses test keys even with all other settings present', async () => {
+  const response = await health({ STRIPE_SECRET_KEY: 'sk_test_mock_only' });
+  const status = await response.json();
+  assert.equal(response.status, 503); assert.equal(status.stripe.keyMode, 'test'); assert.equal(status.stripe.verified, false); assert.equal(status.ready, false);
+});

@@ -19,10 +19,13 @@ export default function SiteStatusPage() {
         <dt>Stripe account verified live</dt><dd>{status.stripe.verified && status.stripe.live ? 'Yes' : 'Not verified'}</dd>
         <dt>Stripe charges enabled</dt><dd>{status.stripe.chargesEnabled ? 'Yes' : 'Unavailable'}</dd>
         <dt>Database connected</dt><dd>{status.database ? 'Yes' : 'Unavailable'}</dd>
-        <dt>DocuSeal API connected</dt><dd>{status.agreementApiConnected ? 'Yes' : 'Unavailable'}</dd>
+        <dt>DocuSeal API URL configured</dt><dd>{status.agreement?.apiUrlConfigured ? 'Yes' : 'Missing'}</dd>
+        <dt>DocuSeal API key configured</dt><dd>{status.agreement?.keyConfigured ? 'Yes' : 'Missing'}</dd>
+        <dt>DocuSeal API connected</dt><dd>{status.agreementApiConnected ? 'Yes' : status.agreement?.status === 'authentication_or_permission_error' ? 'Key, region or permissions need checking' : status.agreement?.status === 'unreachable_or_timeout' ? 'Unreachable or timed out' : 'Unavailable'}</dd>
         <dt>Email key configured</dt><dd>{status.emailConfigured ? 'Yes' : 'Missing'}</dd>
-        <dt>Webhook secrets configured</dt><dd>{status.webhooksConfigured ? 'Yes' : 'Missing'}</dd>
-      </dl><p className="mt-8 text-2">This read-only check does not send an offer or create a payment. DocuSeal Pro PDF entitlement, delivery of an agreement email and provider webhook subscriptions must also be commissioned before accepting orders.</p></>}
+        <dt>Stripe webhook secret configured</dt><dd>{status.webhooks?.stripeConfigured ? 'Yes' : 'Missing'}</dd>
+        <dt>DocuSeal webhook secret configured</dt><dd>{status.webhooks?.docusealConfigured ? 'Yes' : 'Missing'}</dd>
+      </dl><p className="mt-8 text-2">This read-only check does not send an offer or create a payment. A configured secret is not proof that its provider webhook is subscribed or delivering. DocuSeal Pro PDF entitlement, agreement email delivery and the complete signing-to-payment flow still require a commissioning run.</p><p className="mt-4 text-2">Production settings: Cloudflare Pages → trendivalux → Settings → Variables and Secrets → Production. Save provider keys as secrets, then redeploy. See the repository README for the exact variable names and webhook events.</p></>}
       {error && <p role="alert" className="mt-6 accent-2">{error}</p>}<a href="/" className="block mt-8 underline">Back to home</a>
     </div></main>;
 }
