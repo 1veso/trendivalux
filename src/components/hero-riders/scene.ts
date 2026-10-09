@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { riderPose } from './choreography';
+import { createSoftwareRenderer } from './software-renderer';
 
 const vertex = `varying vec3 vWorld; void main(){ vec4 world=modelMatrix*vec4(position,1.); vWorld=world.xyz; gl_Position=projectionMatrix*viewMatrix*world; }`;
 
@@ -29,7 +30,7 @@ function modelBike(color: THREE.Color, texture: THREE.Texture) {
     const mesh = new THREE.Mesh(geometry, material); mesh.position.set(x, y, z); parent.add(mesh); return mesh;
   }
   function box(w: number, h: number, d: number, x: number, y: number, z: number, material = chassis) {
-    return part(new RoundedBoxGeometry(w, h, d, 2, Math.min(w, h, d) * .22), material, x, y, z);
+    return part(new RoundedBoxGeometry(w, h, d, 1, Math.min(w, h, d) * .22), material, x, y, z);
   }
   function limb(from: number[], to: number[], radius: number, material: THREE.Material) {
     const a = new THREE.Vector3(...from as [number, number, number]), b = new THREE.Vector3(...to as [number, number, number]);
@@ -97,14 +98,15 @@ function lightWake(color: THREE.Color, index: number) {
     return { mesh, positions, width, height, wall };
   }
   const ribbons = [ribbon(0, .88, .43, true), ribbon(.085, .07, .95, false), ribbon(1.65, .025, .23, false)];
-  function update(time: number) {
+  function update(time: number, routeScale: number) {
     for (let i = 0; i < count; i++) {
       const pose = riderPose(time - .74 - (1 - i / (count - 1)) * 7.8, index);
-      const nx = Math.cos(pose.yaw), nz = -Math.sin(pose.yaw);
+      const yaw = Math.atan2(Math.sin(pose.yaw) * routeScale, Math.cos(pose.yaw));
+      const nx = Math.cos(yaw), nz = -Math.sin(yaw);
       for (const ribbon of ribbons) {
         const { positions, width, height, wall } = ribbon, p = i * 6;
-        positions[p] = pose.x - nx * width / 2; positions[p + 1] = wall ? .065 : height; positions[p + 2] = pose.z - nz * width / 2;
-        positions[p + 3] = pose.x + nx * width / 2; positions[p + 4] = wall ? height : height; positions[p + 5] = pose.z + nz * width / 2;
+        positions[p] = pose.x * routeScale - nx * width / 2; positions[p + 1] = wall ? .065 : height; positions[p + 2] = pose.z - nz * width / 2;
+        positions[p + 3] = pose.x * routeScale + nx * width / 2; positions[p + 4] = height; positions[p + 5] = pose.z + nz * width / 2;
       }
     }
     for (const ribbon of ribbons) ribbon.mesh.geometry.attributes.position.needsUpdate = true;
@@ -112,10 +114,12 @@ function lightWake(color: THREE.Color, index: number) {
   return { ribbons, update };
 }
 
-export function mountRiderScene(host: HTMLElement, onReady: () => void, onLost: () => void) {
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
-  renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;'; host.appendChild(renderer.domElement);
+export function mountRiderScene(host: HTMLElement, onReady: (mode: 'webgl' | 'canvas') => void, onLost: () => void) {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'low-power' });
+  const renderer = context ? new THREE.WebGLRenderer({ canvas, context, alpha: true, antialias: true }) : null;
+  if (renderer) { renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace; }
+  canvas.style.cssText = 'display:block;width:100%;height:100%;'; host.appendChild(canvas);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, .1, 180);
   camera.position.set(0, 10.5, 25); camera.lookAt(0, .2, -5);
@@ -127,6 +131,7 @@ export function mountRiderScene(host: HTMLElement, onReady: () => void, onLost: 
   const bikes = colors.map(color => modelBike(color, texture));
   const wakes = colors.map((color, index) => lightWake(color, index));
   bikes.forEach(bike => scene.add(bike.root)); wakes.forEach(wake => wake.ribbons.forEach(ribbon => scene.add(ribbon.mesh)));
+  const software = renderer ? null : createSoftwareRenderer(canvas, bikes.map(bike => bike.root), colors);
   const grid = new THREE.ShaderMaterial({ uniforms: { time: { value: 0 }, cyan: { value: colors[0] }, pink: { value: colors[1] }, strength: { value: .28 } }, vertexShader: vertex,
     fragmentShader: `varying vec3 vWorld; uniform float time; uniform vec3 cyan; uniform vec3 pink; uniform float strength;
       void main(){ vec2 p=vWorld.xz/2.5; vec2 fw=max(fwidth(p),vec2(.0001)); vec2 edges=abs(fract(p-.5)-.5)/fw;
@@ -136,37 +141,42 @@ export function mountRiderScene(host: HTMLElement, onReady: () => void, onLost: 
     transparent: true, depthWrite: false, toneMapped: false });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), grid); floor.rotation.x = -Math.PI / 2; floor.position.z = -26; scene.add(floor);
   let disposed = false, visible = true, lost = false, first = true, last = 0, time = 0, lastDraw = 0;
-  let pointerX = 0, cameraX = 0;
+  let pointerX = 0, cameraX = 0, routeScale = 1, raf = 0;
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
   function paint() {
     if (disposed || lost) return;
     bikes.forEach((bike, index) => {
       const pose = riderPose(time, index);
-      bike.root.position.set(pose.x, 0, pose.z); bike.root.rotation.set(0, pose.yaw, pose.bank, 'YXZ');
-      bike.tires.forEach(wheel => { wheel.rotation.x = -time * 3.3; }); wakes[index].update(time);
+      const yaw = Math.atan2(Math.sin(pose.yaw) * routeScale, Math.cos(pose.yaw));
+      bike.root.position.set(pose.x * routeScale, 0, pose.z); bike.root.rotation.set(0, yaw, pose.bank, 'YXZ');
+      bike.tires.forEach(wheel => { wheel.rotation.x = -time * 3.3; }); if (renderer) wakes[index].update(time, routeScale);
     });
     grid.uniforms.time.value = time;
     cameraX += (pointerX - cameraX) * .035; camera.position.x = cameraX; camera.lookAt(cameraX * .15, .2, -5);
-    renderer.render(scene, camera);
-    if (first) { first = false; onReady(); }
+    if (renderer) renderer.render(scene, camera); else software.render(camera, time, routeScale);
+    if (first) { first = false; onReady(renderer ? 'webgl' : 'canvas'); }
   }
   function frame(now: number) {
     if (last) time += Math.min((now - last) / 1000, .05); last = now;
     // Coarse-pointer devices get a lower frame rate without changing speed.
-    if (now - lastDraw < (finePointer.matches ? 16 : 32)) return;
+    if (now - lastDraw < (renderer && finePointer.matches ? 16 : 32)) return;
     lastDraw = now; paint();
   }
   function run() {
     last = 0; lastDraw = 0;
-    renderer.setAnimationLoop(!disposed && !lost && visible && !document.hidden ? frame : null);
+    const active = !disposed && !lost && visible && !document.hidden;
+    if (renderer) renderer.setAnimationLoop(active ? frame : null);
+    else { cancelAnimationFrame(raf); raf = 0; if (active) raf = requestAnimationFrame(softwareFrame); }
   }
+  function softwareFrame(now: number) { frame(now); if (!disposed && !lost && visible && !document.hidden) raf = requestAnimationFrame(softwareFrame); }
   function resize() {
     if (disposed) return;
     const width = host.clientWidth, height = host.clientHeight;
     if (!width || !height) return;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, finePointer.matches ? 1.5 : 1.25, Math.sqrt(2_000_000 / (width * height))));
-    renderer.setSize(width, height, false); camera.aspect = width / height;
-    camera.fov = width < 600 ? 56 : 38; camera.position.z = width < 600 ? 37 : 25; camera.updateProjectionMatrix(); paint();
+    const dpr = Math.min(window.devicePixelRatio || 1, finePointer.matches ? 1.5 : 1.25, Math.sqrt(2_000_000 / (width * height)));
+    if (renderer) { renderer.setPixelRatio(dpr); renderer.setSize(width, height, false); } else software.resize(width, height, dpr);
+    camera.aspect = width / height; routeScale = width < 600 ? .5 : 1;
+    camera.fov = width < 600 ? 44 : 38; camera.position.z = width < 600 ? 30 : 25; camera.updateProjectionMatrix(); paint();
   }
   function theme() {
     const style = getComputedStyle(document.documentElement);
@@ -176,20 +186,20 @@ export function mountRiderScene(host: HTMLElement, onReady: () => void, onLost: 
   }
   function move(event: PointerEvent) { if (finePointer.matches) pointerX = (event.clientX / window.innerWidth - .5) * 1.4; }
   function resetPointer() { pointerX = 0; }
-  function contextLost(event: Event) { event.preventDefault(); lost = true; renderer.setAnimationLoop(null); onLost(); }
+  function contextLost(event: Event) { event.preventDefault(); lost = true; renderer?.setAnimationLoop(null); cancelAnimationFrame(raf); onLost(); }
   const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(host);
   const visibilityObserver = new IntersectionObserver(entries => { visible = entries[0]?.isIntersecting ?? false; run(); }, { threshold: 0 }); visibilityObserver.observe(host);
   const themeObserver = new MutationObserver(theme); themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   document.addEventListener('visibilitychange', run); window.addEventListener('pointermove', move, { passive: true }); document.addEventListener('pointerleave', resetPointer);
-  renderer.domElement.addEventListener('webglcontextlost', contextLost);
-  theme(); resize(); run();
+  canvas.addEventListener('webglcontextlost', contextLost);
+  resize(); theme(); run();
   return () => {
-    disposed = true; renderer.setAnimationLoop(null);
+    disposed = true; renderer?.setAnimationLoop(null); cancelAnimationFrame(raf);
     resizeObserver.disconnect(); visibilityObserver.disconnect(); themeObserver.disconnect();
     document.removeEventListener('visibilitychange', run); window.removeEventListener('pointermove', move); document.removeEventListener('pointerleave', resetPointer);
-    renderer.domElement.removeEventListener('webglcontextlost', contextLost);
+    canvas.removeEventListener('webglcontextlost', contextLost);
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
     scene.traverse(object => { if (object instanceof THREE.Mesh) geometries.add(object.geometry); if (object instanceof THREE.Mesh || object instanceof THREE.Sprite) { const list = Array.isArray(object.material) ? object.material : [object.material]; list.forEach(material => materials.add(material)); } });
-    geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose()); texture.dispose(); renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove();
+    geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose()); texture.dispose(); renderer?.dispose(); renderer?.forceContextLoss(); canvas.remove();
   };
 }

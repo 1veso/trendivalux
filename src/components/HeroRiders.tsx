@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 // remains for reduced motion, unavailable WebGL, and lost graphics contexts.
 export default function HeroRiders() {
   const host = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
+  const [renderer, setRenderer] = useState<'static' | 'webgl' | 'canvas'>('static');
+  const ready = renderer !== 'static';
   const id = useId().replace(/:/g, '');
   useEffect(() => {
     const element = host.current;
@@ -14,26 +15,26 @@ export default function HeroRiders() {
     let cleanup: (() => void) | undefined;
     let pending = false;
     const start = async () => {
-      if (disposed || pending || cleanup || motion.matches || !window.WebGL2RenderingContext) return;
+      if (disposed || pending || cleanup || motion.matches) return;
       pending = true;
       try {
         const { mountRiderScene } = await import('./hero-riders/scene');
         if (disposed || motion.matches) return;
-        cleanup = mountRiderScene(element, () => { if (!disposed) setReady(true); }, () => { if (!disposed) setReady(false); });
-      } catch { if (!disposed) setReady(false); }
+        cleanup = mountRiderScene(element, mode => { if (!disposed) setRenderer(mode); }, () => { if (!disposed) setRenderer('static'); });
+      } catch { if (!disposed) setRenderer('static'); }
       finally { pending = false; }
     };
     const observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) void start(); }, { rootMargin: '150px' });
     observer.observe(element);
     const onMotion = () => {
-      if (motion.matches) { cleanup?.(); cleanup = undefined; setReady(false); }
+      if (motion.matches) { cleanup?.(); cleanup = undefined; setRenderer('static'); }
       else void start();
     };
     motion.addEventListener('change', onMotion);
     return () => { disposed = true; observer.disconnect(); motion.removeEventListener('change', onMotion); cleanup?.(); };
   }, []);
 
-  return <div className="hero-riders absolute inset-x-0 bottom-[-5%] h-[44%] pointer-events-none" aria-hidden="true" data-renderer={ready ? 'webgl' : 'static'}>
+  return <div className="hero-riders absolute inset-x-0 bottom-[-5%] h-[44%] pointer-events-none" aria-hidden="true" data-renderer={renderer}>
     <div className="absolute inset-0" style={{ opacity: ready ? 0 : 1 }}>
       <div className="absolute inset-x-[-20%] top-[24%] bottom-[-30%]" style={{ transform: 'perspective(700px) rotateX(62deg)', transformOrigin: '50% 0%', backgroundImage: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 32%, transparent) 1px, transparent 1px), linear-gradient(color-mix(in srgb, var(--accent-2) 32%, transparent) 1px, transparent 1px)', backgroundSize: '64px 64px', maskImage: 'linear-gradient(transparent, #000 28%)' }} />
       <svg viewBox="0 0 1200 400" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" fill="none">
