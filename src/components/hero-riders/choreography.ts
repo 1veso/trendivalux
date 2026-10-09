@@ -1,15 +1,15 @@
 const TAU = Math.PI * 2;
 
-// Mirrored circuits leave an open lane below the sun. Analytic tangents keep
-// the silhouettes and light walls continuous across the loop boundary.
+// Staggered circuits occupy the open space to the right of the desktop copy.
+// Analytic tangents keep silhouettes and light walls continuous at loop edges.
 export function riderPose(time: number, index: number) {
-  const side = index === 0 ? -1 : 1;
   const period = index === 0 ? 32 : 36;
   const phase = time * TAU / period + (index === 0 ? 0.68 : 3.5);
-  const x = side * (7.5 + 3.5 * Math.sin(phase) + 0.8 * Math.sin(2 * phase));
-  const z = 0.5 + 8 * Math.cos(phase);
-  const dx = side * (3.5 * Math.cos(phase) + 1.6 * Math.cos(2 * phase));
-  const dz = -8 * Math.sin(phase);
-  const turn = side * Math.sin(phase) * 0.12;
+  const amplitude = index === 0 ? 2.3 : 1.4;
+  const x = (index === 0 ? 7.3 : 13.4) + amplitude * Math.sin(phase) + .45 * Math.sin(2 * phase);
+  const z = (index === 0 ? 2.5 : -3) + 6.8 * Math.cos(phase);
+  const dx = amplitude * Math.cos(phase) + .9 * Math.cos(2 * phase);
+  const dz = -6.8 * Math.sin(phase);
+  const turn = Math.sin(phase) * .12;
   return { x, z, yaw: Math.atan2(-dx, -dz), bank: turn, period };
 }

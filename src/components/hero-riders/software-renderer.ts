@@ -27,7 +27,7 @@ export function createSoftwareRenderer(canvas: HTMLCanvasElement, roots: THREE.G
     ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = size;
     ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
   }
-  function render(camera: THREE.PerspectiveCamera, time: number, routeScale: number) {
+  function render(camera: THREE.PerspectiveCamera, time: number, routeScale: number, routeOffset: number) {
     camera.updateMatrixWorld(); projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, width, height); ctx.globalCompositeOperation = 'source-over';
     const palette = colors.map(color => '#' + color.getHexString(THREE.SRGBColorSpace));
@@ -43,15 +43,16 @@ export function createSoftwareRenderer(canvas: HTMLCanvasElement, roots: THREE.G
       const color = palette[index];
       for (let i = 0; i < 65; i++) {
         const age = i / 65, a = riderPose(time - .74 - (1 - age) * 7.8, index), b = riderPose(time - .74 - (1 - (i + 1) / 65) * 7.8, index);
-        const bottomA = project(a.x * routeScale, .07, a.z), topA = project(a.x * routeScale, .88, a.z);
-        const bottomB = project(b.x * routeScale, .07, b.z), topB = project(b.x * routeScale, .88, b.z);
+        const ax = (a.x - routeOffset) * routeScale, bx = (b.x - routeOffset) * routeScale;
+        const bottomA = project(ax, .07, a.z), topA = project(ax, .88, a.z);
+        const bottomB = project(bx, .07, b.z), topB = project(bx, .88, b.z);
         ctx.globalAlpha = age * age * .19; ctx.fillStyle = color; ctx.beginPath();
         ctx.moveTo(bottomA.x, bottomA.y); ctx.lineTo(topA.x, topA.y); ctx.lineTo(topB.x, topB.y); ctx.lineTo(bottomB.x, bottomB.y); ctx.closePath(); ctx.fill();
-        line([a.x * routeScale, .04, a.z], [b.x * routeScale, .04, b.z], color, age * age * .1, 12);
-        line([a.x * routeScale, .07, a.z], [b.x * routeScale, .07, b.z], color, age * age * .85, 1.8);
-        line([a.x * routeScale, .88, a.z], [b.x * routeScale, .88, b.z], color, age * age * .35, .7);
+        line([ax, .04, a.z], [bx, .04, b.z], color, age * age * .1, 12);
+        line([ax, .07, a.z], [bx, .07, b.z], color, age * age * .85, 1.8);
+        line([ax, .88, a.z], [bx, .88, b.z], color, age * age * .35, .7);
       }
-      const pose = riderPose(time, index), center = project(pose.x * routeScale, .03, pose.z);
+      const pose = riderPose(time, index), center = project((pose.x - routeOffset) * routeScale, .03, pose.z);
       const glow = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, width < 600 ? 40 : 65);
       glow.addColorStop(0, color + '55'); glow.addColorStop(1, color + '00');
       ctx.globalAlpha = .6; ctx.fillStyle = glow; ctx.fillRect(center.x - 70, center.y - 70, 140, 140);

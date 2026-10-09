@@ -57,6 +57,6 @@ export default function HeroRiders() {
         </g>)}
       </svg>
     </div>
-    <div ref={host} className="absolute inset-0" style={{ opacity: ready ? 1 : 0, maskImage: 'linear-gradient(to bottom, transparent, transparent 12%, #000 22%)' }} />
+    <div ref={host} className="hero-riders-canvas absolute inset-0" style={{ opacity: ready ? 1 : 0 }} />
   </div>;
 }

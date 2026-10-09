@@ -92,21 +92,23 @@ function lightWake(color: THREE.Color, index: number) {
     geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2)); geometry.setIndex(indices);
     const material = new THREE.ShaderMaterial({ uniforms: { color: { value: color }, strength: { value: opacity } },
       vertexShader: 'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: `uniform vec3 color; uniform float strength; varying vec2 vUv; void main(){ float age=pow(vUv.x,1.6); float band=${wall ? 'mix(.7,.06,vUv.y)' : 'pow(1.-abs(vUv.y*2.-1.),2.)'}; gl_FragColor=vec4(color,age*band*strength); }`,
+      fragmentShader: `uniform vec3 color; uniform float strength; varying vec2 vUv; void main(){ float age=pow(vUv.x,1.6); float band=${wall ? 'mix(.7,.06,vUv.y)' : 'pow(1.-abs(vUv.y*2.-1.),2.)'}; gl_FragColor=vec4(color,age*band*strength);
+        #include <colorspace_fragment>
+      }`,
       transparent: true, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
     const mesh = new THREE.Mesh(geometry, material); mesh.frustumCulled = false;
     return { mesh, positions, width, height, wall };
   }
   const ribbons = [ribbon(0, .88, .43, true), ribbon(.085, .07, .95, false), ribbon(1.65, .025, .23, false)];
-  function update(time: number, routeScale: number) {
+  function update(time: number, routeScale: number, routeOffset: number) {
     for (let i = 0; i < count; i++) {
       const pose = riderPose(time - .74 - (1 - i / (count - 1)) * 7.8, index);
       const yaw = Math.atan2(Math.sin(pose.yaw) * routeScale, Math.cos(pose.yaw));
       const nx = Math.cos(yaw), nz = -Math.sin(yaw);
       for (const ribbon of ribbons) {
         const { positions, width, height, wall } = ribbon, p = i * 6;
-        positions[p] = pose.x * routeScale - nx * width / 2; positions[p + 1] = wall ? .065 : height; positions[p + 2] = pose.z - nz * width / 2;
-        positions[p + 3] = pose.x * routeScale + nx * width / 2; positions[p + 4] = height; positions[p + 5] = pose.z + nz * width / 2;
+        positions[p] = (pose.x - routeOffset) * routeScale - nx * width / 2; positions[p + 1] = wall ? .065 : height; positions[p + 2] = pose.z - nz * width / 2;
+        positions[p + 3] = (pose.x - routeOffset) * routeScale + nx * width / 2; positions[p + 4] = height; positions[p + 5] = pose.z + nz * width / 2;
       }
     }
     for (const ribbon of ribbons) ribbon.mesh.geometry.attributes.position.needsUpdate = true;
@@ -138,23 +140,25 @@ export function mountRiderScene(host: HTMLElement, onReady: (mode: 'webgl' | 'ca
       void main(){ vec2 p=vWorld.xz/2.5; vec2 fw=max(fwidth(p),vec2(.0001)); vec2 edges=abs(fract(p-.5)-.5)/fw;
       float lines=1.-min(min(edges.x,edges.y),1.); float fade=smoothstep(-72.,5.,vWorld.z)*(1.-smoothstep(28.,68.,length(vWorld.xz)));
       float pulse=pow(max(0.,1.-abs(mod(vWorld.z+time*2.+55.,44.)-22.)/4.),2.);
-      vec3 c=mix(cyan,pink,smoothstep(-16.,16.,vWorld.x)); gl_FragColor=vec4(c,lines*fade*strength*(.72+.28*pulse)); }`,
+      vec3 c=mix(cyan,pink,smoothstep(-16.,16.,vWorld.x)); gl_FragColor=vec4(c,lines*fade*strength*(.72+.28*pulse));
+      #include <colorspace_fragment>
+    }`,
     transparent: true, depthWrite: false, toneMapped: false });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), grid); floor.rotation.x = -Math.PI / 2; floor.position.z = -26; scene.add(floor);
   let disposed = false, visible = true, lost = false, first = true, last = 0, time = 0, lastDraw = 0;
-  let pointerX = 0, cameraX = 0, routeScale = 1, raf = 0;
+  let pointerX = 0, cameraX = 0, routeScale = 1, routeOffset = 0, raf = 0;
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
   function paint() {
     if (disposed || lost) return;
     bikes.forEach((bike, index) => {
       const pose = riderPose(time, index);
       const yaw = Math.atan2(Math.sin(pose.yaw) * routeScale, Math.cos(pose.yaw));
-      bike.root.position.set(pose.x * routeScale, 0, pose.z); bike.root.rotation.set(0, yaw, pose.bank, 'YXZ');
-      bike.tires.forEach(wheel => { wheel.rotation.x = -time * 3.3; }); if (renderer) wakes[index].update(time, routeScale);
+      bike.root.position.set((pose.x - routeOffset) * routeScale, 0, pose.z); bike.root.rotation.set(0, yaw, pose.bank, 'YXZ');
+      bike.tires.forEach(wheel => { wheel.rotation.x = -time * 3.3; }); if (renderer) wakes[index].update(time, routeScale, routeOffset);
     });
     grid.uniforms.time.value = time;
     cameraX += (pointerX - cameraX) * .035; camera.position.x = cameraX; camera.lookAt(cameraX * .15, .2, 6);
-    if (renderer) renderer.render(scene, camera); else software.render(camera, time, routeScale);
+    if (renderer) renderer.render(scene, camera); else software.render(camera, time, routeScale, routeOffset);
     if (first) { first = false; onReady(renderer ? 'webgl' : 'canvas'); }
   }
   function frame(now: number) {
@@ -177,7 +181,7 @@ export function mountRiderScene(host: HTMLElement, onReady: (mode: 'webgl' | 'ca
     if (!width || !height) return;
     const dpr = Math.min(window.devicePixelRatio || 1, finePointer.matches ? 1.5 : 1.25, Math.sqrt(2_000_000 / (width * height)));
     if (renderer) { renderer.setPixelRatio(dpr); renderer.setSize(width, height, false); } else software.resize(width, height, dpr);
-    camera.aspect = width / height; routeScale = width < 600 ? .5 : 1;
+    camera.aspect = width / height; routeScale = width < 600 ? .5 : 1; routeOffset = width < 600 ? 9 : 0;
     camera.fov = width < 600 ? 44 : 38; camera.position.z = width < 600 ? 30 : 25; camera.updateProjectionMatrix(); paint();
   }
   function theme() {
